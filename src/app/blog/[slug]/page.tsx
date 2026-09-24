@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { SairaLogo } from "@/components/SairaLogo";
 import { formatDate, getPost, getPosts } from "@/lib/blog";
 import styles from "../blog.module.css";
 
@@ -22,7 +23,9 @@ export default async function PostPage({ params }: Props) {
   return (
     <main className={styles.page}>
       <nav className={styles.nav}>
-        <Link href="/">saira</Link>
+        <Link href="/" aria-label="Saira Labs home">
+          <SairaLogo height={18} />
+        </Link>
         <span>/</span>
         <Link href="/blog">Blog</Link>
       </nav>

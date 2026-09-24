@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SairaLogo } from "@/components/SairaLogo";
 import { formatDate, getPosts } from "@/lib/blog";
 import styles from "./blog.module.css";
 
@@ -10,7 +11,9 @@ export default function BlogPage() {
   return (
     <main className={styles.page}>
       <nav className={styles.nav}>
-        <Link href="/">saira</Link>
+        <Link href="/" aria-label="Saira Labs home">
+          <SairaLogo height={18} />
+        </Link>
       </nav>
       <h1 className={styles.heading}>Blog</h1>
       <ul className={styles.list}>

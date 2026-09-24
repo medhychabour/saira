@@ -26,6 +26,41 @@
   background: rgba(255, 255, 255, 0.06);
 }
 
+/* Intro, sitting just above the logos */
+
+.intro {
+  position: absolute;
+  left: 50%;
+  bottom: calc(50% - var(--logo-y) + 120px);
+  width: min(40rem, calc(100% - 2rem));
+  translate: -50% 0;
+  transition: opacity 400ms;
+}
+
+.intro > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.intro p {
+  font-size: 1.0625rem;
+  font-weight: 300;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.6);
+  text-wrap: pretty;
+}
+
+.intro strong {
+  font-weight: 400;
+  color: var(--color);
+}
+
+.main[data-open="true"] .intro {
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* Logos */
 
 .stage {
@@ -126,6 +161,8 @@
 }
 
 .wordmark {
+  display: block;
+  line-height: 0;
   font-size: 1.75rem;
   font-weight: 600;
   letter-spacing: -0.04em;
@@ -347,6 +384,16 @@
 /* Small screens: the panel slides up as a sheet */
 
 @media (max-width: 920px) {
+  .intro {
+    top: 4.25rem;
+    bottom: auto;
+  }
+
+  .intro p {
+    font-size: 0.875rem;
+    line-height: 1.55;
+  }
+
   .overlay {
     padding: 0 0.25rem 0.25rem;
     align-items: flex-end;

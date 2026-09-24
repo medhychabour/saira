@@ -1,6 +1,5 @@
-// Every product shown on the home page. Add an entry here to add a logo.
-// Each product shows its mark (see components/Mark.tsx); set `image` (a file in /public/logos)
-// to use an image instead.
+// Every product shown on the home page. Add an entry here to add a logo;
+// its mark is drawn from the paths in components/Mark.tsx (a disc until one is added).
 
 export type Detail =
   | { label: string; value: string }
@@ -9,7 +8,6 @@ export type Detail =
 export type Product = {
   slug: string;
   name: string;
-  image?: string;
   bio: string;
   details: Detail[];
   note?: string;
@@ -58,9 +56,14 @@ export const products: Product[] = [
 ];
 
 export const studio = {
-  name: "Saira",
+  name: "Saira Labs",
   description:
-    "Saira builds products for the onchain and agent economy: loyalty, payment security and infrastructure for AI agents.",
+    "Saira Labs is an independent, product-driven research lab building at the intersection of AI and Web3.",
+  intro: [
+    "Saira Labs is an independent, product-driven research lab building at the intersection of AI and Web3. We turn emerging technologies into ambitious products, from autonomous agents to onchain infrastructure.",
+    "Through Rewards, Waken, and Warns, we're exploring new frontiers, solving hard technical problems, and building the foundations for a more intelligent and programmable internet.",
+    "We research, build, and ship what's next.",
+  ],
   links: [
     { label: "X", href: "https://x.com/sairalabs" },
     { label: "Blog", href: "/blog" },

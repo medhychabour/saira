@@ -1,11 +1,7 @@
-/* eslint-disable @next/next/no-img-element */
-import type { Product } from "@/content/products";
-
-// Product marks, drawn in the text color. Sources: rewards-front brand kit,
+// Product marks, as SVG paths. Sources: rewards-front brand kit,
 // warns/apps/dashboard logo.tsx, waken/web/public/logo.svg.
 
-// `cut` fills holes so the sticker die-cut follows the outer contour only.
-export type MarkShape = { viewBox: string; paths: string[]; cut?: string };
+export type MarkShape = { viewBox: string; paths: string[] };
 
 export const MARKS: Record<string, MarkShape> = {
   rewards: {
@@ -16,14 +12,12 @@ export const MARKS: Record<string, MarkShape> = {
   },
   warns: {
     viewBox: "0 0 7 7",
-    cut: "<rect x='1' y='1' width='5' height='5'/>",
     paths: [
       "M2 0h1v1H2zM4 0h1v1H4zM3 1h1v1H3zM0 2h1v1H0zM6 2h1v1H6zM1 3h1v1H1zM5 3h1v1H5zM0 4h1v1H0zM6 4h1v1H6zM3 5h1v1H3zM2 6h1v1H2zM4 6h1v1H4z",
     ],
   },
   waken: {
     viewBox: "0 0 734 734",
-    cut: "<circle cx='367' cy='367' r='367'/>",
     paths: [
       "M128 367C128 498.996 235.004 606 367 606C498.996 606 606 498.996 606 367C606 359.049 605.614 351.206 604.863 343.488L732.261 331.09C733.412 342.922 734 354.902 734 367C734 569.689 569.689 734 367 734C164.312 734 1.39533e-05 569.688 0 367C0 354.902 0.587749 342.922 1.73926 331.09L129.137 343.488C128.386 351.206 128 359.049 128 367Z",
       "M156.141 254.359C148.816 268.034 142.791 282.492 138.223 297.571L15.7217 260.457C22.7644 237.212 32.0453 214.949 43.3066 193.924L156.141 254.359Z",
@@ -37,29 +31,3 @@ export const MARKS: Record<string, MarkShape> = {
   },
 };
 
-export function Mark({ product, size }: { product: Product; size: number }) {
-  if (product.image) {
-    return <img src={product.image} alt={product.name} width={size} height={size} draggable={false} />;
-  }
-
-  const mark = MARKS[product.slug];
-  if (!mark) {
-    // A product without a mark yet: its initial in a circle.
-    return (
-      <svg width={size} height={size} viewBox="0 0 100 100" role="img" aria-label={product.name}>
-        <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" strokeWidth="4" />
-        <text x="50" y="50" dy="0.35em" textAnchor="middle" fontSize="44" fontWeight="500" fill="currentColor">
-          {product.name[0]}
-        </text>
-      </svg>
-    );
-  }
-
-  return (
-    <svg width={size} height={size} viewBox={mark.viewBox} fill="currentColor" role="img" aria-label={product.name} shapeRendering={product.slug === "warns" ? "crispEdges" : undefined}>
-      {mark.paths.map((d) => (
-        <path key={d.slice(0, 24)} d={d} />
-      ))}
-    </svg>
-  );
-}

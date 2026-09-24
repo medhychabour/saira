@@ -5,14 +5,21 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { products, studio, type Product } from "@/content/products";
 import { play, setMuted, useMuted } from "@/lib/sfx";
-import { HoloSticker } from "./HoloSticker";
+import { MARKS, type MarkShape } from "./Mark";
+import { MatrixLogo } from "./MatrixLogo";
+import { SairaLogo } from "./SairaLogo";
 import styles from "./Home.module.css";
 
 const EASE = [0.19, 1, 0.22, 1] as const;
 const MOBILE = 920;
-// Stickers are drawn at their open size and scaled down at rest, so they stay sharp.
+// Logos are drawn at their open size and scaled down at rest, so they stay sharp.
 const SIZE = { desktop: 260, mobile: 190 };
 const REST_SCALE = { desktop: 0.6, mobile: 0.5 };
+// A product without a mark yet gets a plain disc.
+const FALLBACK: MarkShape = { viewBox: "0 0 100 100", paths: ["M50 2a48 48 0 1 0 0.01 0Z"] };
+
+// The logos sit a little below the middle to leave room for the intro above.
+const logoOffset = (h: number, mobile: boolean) => (mobile ? h * 0.18 : Math.min(110, h * 0.11));
 
 function subscribeResize(cb: () => void) {
   window.addEventListener("resize", cb);
@@ -27,6 +34,7 @@ function useViewport() {
 
 export function Home() {
   const [active, setActive] = useState<number | null>(null);
+  const { h, mobile } = useViewport();
   const open = active !== null;
 
   const select = useCallback((i: number) => {
@@ -62,8 +70,24 @@ export function Home() {
   }, [open, close, next, prev]);
 
   return (
-    <main className={styles.main} data-open={open}>
+    <main className={styles.main} data-open={open} style={{ "--logo-y": `${logoOffset(h, mobile)}px` } as React.CSSProperties}>
       <MuteButton />
+
+      <section className={styles.intro}>
+        <div>
+          {/* Each paragraph comes in from a soft blur, one after the other. */}
+          {studio.intro.map((p, i) => (
+            <motion.p
+              key={p.slice(0, 24)}
+              initial={{ opacity: 0, filter: "blur(10px)", y: 6 }}
+              animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+              transition={{ duration: 1.1, ease: EASE, delay: 0.15 + i * 0.18 }}
+            >
+              {highlight(p)}
+            </motion.p>
+          ))}
+        </div>
+      </section>
 
       <div className={styles.stage}>
         <ul>
@@ -80,7 +104,7 @@ export function Home() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.2, ease: EASE, delay: 0.6 }}
         >
-          {studio.name.toLowerCase()}
+          <SairaLogo height={26} />
         </motion.div>
         <ul className={styles.links}>
           {studio.links.map((l) => (
@@ -124,6 +148,14 @@ export function Home() {
   );
 }
 
+// Product names in the intro stand out in white.
+function highlight(text: string) {
+  const names = products.map((p) => p.name).join("|");
+  return text.split(new RegExp(`(${names})`)).map((part, i) =>
+    products.some((p) => p.name === part) ? <strong key={i}>{part}</strong> : part,
+  );
+}
+
 function LogoItem({
   product,
   index,
@@ -146,7 +178,7 @@ function LogoItem({
   const spacing = mobile
     ? Math.min(112, (w - 100) / Math.max(total - 1, 1))
     : Math.min(200, (w - 360) / Math.max(total - 1, 1));
-  const home = { x: (index - (total - 1) / 2) * spacing, y: 0 };
+  const home = { x: (index - (total - 1) / 2) * spacing, y: logoOffset(h, mobile) };
 
   // Open: the chosen mark moves to the middle of the free space left of the
   // panel and grows; the others slide along the same line and fade.
@@ -187,7 +219,7 @@ function LogoItem({
               animate={{ scale: selected ? 1 : rest }}
               transition={{ duration: mobile ? 0.5 : 0.9, ease: EASE }}
             >
-              <HoloSticker product={product} size={size} selected={selected} />
+              <MatrixLogo mark={MARKS[product.slug] ?? FALLBACK} size={size} />
             </motion.span>
           </motion.span>
           <span className={styles.name}>{product.name}</span>

@@ -6,11 +6,10 @@ import { useSyncExternalStore } from "react";
 // Kept soft on purpose: pure sine tones, a gentle attack, low volume, and
 // everything goes through a low-pass filter so nothing sounds sharp.
 
-export type Sfx = "click" | "open" | "close" | "forward" | "back" | "peel";
+export type Sfx = "click" | "open" | "close" | "forward" | "back";
 
 type Tone = { freq: number; to?: number; at?: number; dur: number; gain: number };
-// `sweep`: a band of noise gliding up, like adhesive letting go.
-type Sound = { tones: Tone[]; tick?: number; sweep?: { from: number; to: number; dur: number; gain: number } };
+type Sound = { tones: Tone[]; tick?: number };
 
 const SOUNDS: Record<Sfx, Sound> = {
   // A muted key press: a very short band of noise under a low thump.
@@ -30,7 +29,6 @@ const SOUNDS: Record<Sfx, Sound> = {
   },
   forward: { tick: 0.03, tones: [{ freq: 440, to: 494, dur: 0.12, gain: 0.03 }] },
   back: { tick: 0.03, tones: [{ freq: 494, to: 440, dur: 0.12, gain: 0.03 }] },
-  peel: { tones: [], sweep: { from: 380, to: 2200, dur: 0.32, gain: 0.07 } },
 };
 
 const KEY = "saira:muted";
@@ -57,7 +55,7 @@ function audio() {
     lowpass.connect(ctx.destination);
     out = lowpass;
 
-    noise = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.5), ctx.sampleRate);
+    noise = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.03), ctx.sampleRate);
     const data = noise.getChannelData(0);
     for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
   }
@@ -90,24 +88,6 @@ export function play(name: Sfx) {
     osc.connect(envelope(ac, start, t.gain, t.dur));
     osc.start(start);
     osc.stop(start + t.dur + 0.05);
-  }
-
-  if (sound.sweep && noise) {
-    const { from, to, dur, gain } = sound.sweep;
-    const src = ac.createBufferSource();
-    src.buffer = noise;
-    const band = ac.createBiquadFilter();
-    band.type = "bandpass";
-    band.Q.value = 2;
-    band.frequency.setValueAtTime(from, now);
-    band.frequency.exponentialRampToValueAtTime(to, now + dur);
-    const amp = ac.createGain();
-    amp.gain.setValueAtTime(0, now);
-    amp.gain.linearRampToValueAtTime(gain, now + dur * 0.35);
-    amp.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-    src.connect(band).connect(amp).connect(out!);
-    src.start(now);
-    src.stop(now + dur + 0.02);
   }
 
   if (sound.tick && noise) {
