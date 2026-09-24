@@ -36,8 +36,8 @@ const REST_SCALE = 0.6;
 // A product without a mark yet gets a plain disc.
 const FALLBACK: MarkShape = { viewBox: "0 0 100 100", paths: ["M50 2a48 48 0 1 0 0.01 0Z"] };
 
-// On desktop the logos sit a little below the middle and the intro hangs above them.
-const logoOffset = (h: number) => Math.min(150, h * 0.16);
+// Until the intro is measured, the logos sit a little below the middle.
+const logoOffset = (h: number, mobile: boolean) => (mobile ? h * 0.22 : Math.min(150, h * 0.16));
 // Phones in landscape: little height, so everything tightens up.
 const SHORT = 500;
 
@@ -51,17 +51,18 @@ function phoneRow(w: number, h: number) {
 // Below this height the logotype makes way for the text and logos.
 const LOGOTYPE_MIN_H = { desktop: 680, mobile: 620 };
 
-// On phones the intro and the logos below it are centred as one group in the
-// room between the sound toggle and the footer. Returns where the intro starts
-// and how far below the middle the logos sit.
-function phoneLayout(w: number, h: number, introH: number, footerH: number) {
-  const short = h < SHORT;
-  const top = short ? 16 : 60;
+// The intro and the logos below it are centred as one group between the top
+// of the page and the footer logo, never starting under the sound toggle on
+// phones. Returns where the intro starts and how far below the middle the
+// logos sit.
+function groupLayout(w: number, h: number, mobile: boolean, introH: number, footerH: number) {
+  const short = mobile && h < SHORT;
   const footerTop = h - (short ? 16 : 32) - footerH;
-  const { logo } = phoneRow(w, h);
-  const room = footerTop - 16 - top;
-  const gap = room - introH - logo > 120 ? 48 : 24;
-  const start = top + Math.max(0, (room - introH - gap - logo) / 2);
+  const logo = mobile ? phoneRow(w, h).logo : SIZE.desktop * REST_SCALE;
+  const minTop = mobile ? (short ? 16 : 60) : 24;
+  // Tight phone screens close up the space between the text and the logos.
+  const gap = mobile && footerTop - 16 - minTop - introH - logo <= 120 ? 24 : 48;
+  const start = Math.max(minTop, (footerTop - introH - gap - logo) / 2);
   return { introTop: start, logoY: start + introH + gap + logo / 2 - h / 2 };
 }
 
@@ -81,7 +82,7 @@ export function Home() {
   const { w, h, mobile } = useViewport();
   const open = active !== null;
 
-  // Phones place the group from the real heights of the intro and the footer.
+  // The group is placed from the real heights of the intro and the footer.
   const mainRef = useRef<HTMLElement>(null);
   const introRef = useRef<HTMLElement>(null);
   const [heights, setHeights] = useState({ intro: 0, footer: 0 });
@@ -96,8 +97,8 @@ export function Home() {
     observer.observe(footer);
     return () => observer.disconnect();
   }, []);
-  const phone = mobile && heights.intro ? phoneLayout(w, h, heights.intro, heights.footer) : null;
-  const logoY = mobile ? (phone?.logoY ?? h * 0.22) : logoOffset(h);
+  const layout = heights.intro ? groupLayout(w, h, mobile, heights.intro, heights.footer) : null;
+  const logoY = layout?.logoY ?? logoOffset(h, mobile);
   const showLogotype = h >= (mobile ? LOGOTYPE_MIN_H.mobile : LOGOTYPE_MIN_H.desktop);
   // True while the logos travel back after closing, so the text only comes
   // back once they are nearly home and nothing overlaps.
@@ -160,7 +161,7 @@ export function Home() {
       className={styles.main}
       data-open={open}
       data-closing={closing}
-      style={{ "--logo-y": `${logoY}px`, "--intro-top": phone ? `${phone.introTop}px` : undefined } as React.CSSProperties}
+      style={{ "--logo-y": `${logoY}px`, "--intro-top": layout ? `${layout.introTop}px` : undefined } as React.CSSProperties}
     >
       <MuteButton />
 

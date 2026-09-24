@@ -26,12 +26,13 @@
   background: rgba(255, 255, 255, 0.06);
 }
 
-/* Intro, sitting just above the logos */
+/* Intro, above the logos. Placed by Home.tsx from the measured heights (see
+   groupLayout); it is still hidden when first measured. */
 
 .intro {
   position: absolute;
   left: 50%;
-  bottom: calc(50% - var(--logo-y) + 120px);
+  top: var(--intro-top, 20%);
   width: min(40rem, calc(100% - 2rem));
   translate: -50% 0;
   transition: opacity 400ms;
@@ -378,12 +379,6 @@
   .main[data-open="true"] .stage {
     z-index: auto;
     clip-path: none;
-  }
-
-  /* Placed by Home.tsx from the measured heights (see phoneLayout) */
-  .intro {
-    top: var(--intro-top, 4.25rem);
-    bottom: auto;
   }
 
   .intro p {
