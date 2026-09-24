@@ -43,6 +43,10 @@
 }
 
 .header,
+.postHeader .meta {
+  font-size: 1rem;
+}
+
 .postHeader h1 {
   --i: 1;
 }
@@ -211,7 +215,7 @@
 }
 
 .prose {
-  font-size: 1.0625rem;
+  font-size: 1rem;
   font-weight: 300;
   line-height: 1.7;
   color: rgba(255, 255, 255, 0.85);
@@ -223,7 +227,7 @@
 
 .prose h2 {
   margin-top: 2.75rem;
-  font-size: 1.375rem;
+  font-size: 1.25rem;
   font-weight: 500;
   color: var(--color);
 }
