@@ -5,20 +5,7 @@
 export type Surface = "API" | "App" | "CLI" | "MCP" | "SDK";
 
 // Small round icons, shown overlapping with their name on hover (see components/DetailIcon.tsx).
-export type IconKey =
-  | "base"
-  | "somnia"
-  | "claude-code"
-  | "codex"
-  | "cursor"
-  | "openclaw"
-  | "hermes"
-  | "zeroclaw"
-  | "claude"
-  | "chatgpt"
-  | "gemini"
-  | "deepseek"
-  | "kimi";
+export type IconKey = "base" | "somnia" | "claude-code" | "codex" | "cursor" | "openclaw" | "hermes" | "zeroclaw";
 
 export type Detail =
   | { label: string; value: string }
@@ -76,6 +63,8 @@ export const products: Product[] = [
   },
 ];
 
+export const SITE_URL = "https://saira.xyz";
+
 export const studio = {
   name: "Saira Labs",
   description:
@@ -86,8 +75,8 @@ export const studio = {
     "We research, build, and ship what's next.",
   ],
   links: [
-    // Placeholder until the real X account is ready.
-    { label: "X", href: "https://x.com/sairalabs" },
+    // Placeholder until the real X account is ready: kept out of search data.
+    { label: "X", href: "https://x.com/sairalabs", placeholder: true },
     { label: "LinkedIn", href: "https://www.linkedin.com/company/saira-labs/" },
     { label: "Contact", href: "mailto:hello@saira.xyz" },
     { label: "Blog", href: "/blog" },

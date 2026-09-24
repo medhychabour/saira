@@ -3,10 +3,10 @@ import styles from "./DetailIcon.module.css";
 
 // Round icons for the panel details (chains, compatible harnesses), overlapping
 // in a row like Avara's, each showing its name in a small bubble on hover.
-// Each sits on its brand colour. Harness and model icons come from
+// Each sits on its brand colour. Harness icons come from
 // @lobehub/icons-static-svg (MIT), copied in public/icons; their colours come
-// from that set's colour versions. Cursor, Hermes, ZeroClaw and OpenAI have no
-// colour version: they are black and white brands. `fg` can be a gradient.
+// from that set's colour versions. Cursor, Hermes and ZeroClaw have no colour
+// version: they are black and white brands. `fg` can be a gradient.
 
 const SOMNIA = [
   "M0 14.8148H1.48148C1.90123 14.8148 2.2716 14.7284 2.59259 14.5556C2.91358 14.358 3.17284 14.1111 3.37037 13.8148C3.59259 13.4938 3.75309 13.1481 3.85185 12.7778C3.97531 12.3827 4.03704 11.9877 4.03704 11.5926V5.62963C4.03704 4.71605 4.12346 3.91358 4.2963 3.22222C4.49383 2.53086 4.81482 1.95062 5.25926 1.48148C5.7037 0.987655 6.2963 0.617286 7.03704 0.370372C7.80247 0.123457 8.75309 0 9.88889 0H12.8889V2.40741H9.74074C8.7037 2.40741 7.96296 2.64198 7.51852 3.11111C7.09876 3.58025 6.88889 4.4321 6.88889 5.66667V10.7778C6.88889 12.4321 6.64197 13.6543 6.14815 14.4444C5.65432 15.2099 5.08642 15.7284 4.44444 16C5.08642 16.2963 5.65432 16.8519 6.14815 17.6667C6.64197 18.4815 6.88889 19.6667 6.88889 21.2222V26.3333C6.88889 27.5679 7.11111 28.4198 7.55556 28.8889C8 29.358 8.74074 29.5926 9.77778 29.5926H12.8889V32H9.88889C8.75309 32 7.80247 31.8765 7.03704 31.6296C6.2963 31.3827 5.7037 31.0123 5.25926 30.5185C4.81482 30.0494 4.49383 29.4691 4.2963 28.7778C4.12346 28.0864 4.03704 27.284 4.03704 26.3704V20.4074C4.03704 20.037 3.97531 19.6667 3.85185 19.2963C3.75309 18.9012 3.59259 18.5556 3.37037 18.2593C3.17284 17.9383 2.91358 17.679 2.59259 17.4815C2.2963 17.284 1.93827 17.1852 1.51852 17.1852H0V14.8148Z",
@@ -23,11 +23,6 @@ const ICONS: Record<IconKey, { name: string; bg: string; fg: string; file?: stri
   openclaw: { name: "OpenClaw", bg: "linear-gradient(135deg, #ff4d4d, #991b1b)", fg: "#fff", file: "openclaw" },
   hermes: { name: "Hermes", bg: "#f2efe6", fg: "#000", file: "hermesagent" },
   zeroclaw: { name: "ZeroClaw", bg: "#fff", fg: "#000", file: "zeroclaw" },
-  claude: { name: "Claude", bg: "#d97757", fg: "#fff", file: "claude" },
-  chatgpt: { name: "ChatGPT", bg: "#000", fg: "#fff", file: "openai" },
-  gemini: { name: "Gemini", bg: "#fff", fg: "linear-gradient(135deg, #3186ff 20%, #08b962 45%, #fabc12 65%, #f94543 85%)", file: "gemini" },
-  deepseek: { name: "DeepSeek", bg: "#4d6bfe", fg: "#fff", file: "deepseek" },
-  kimi: { name: "Kimi", bg: "#1783ff", fg: "#fff", file: "kimi" },
 };
 
 function Glyph({ icon }: { icon: IconKey }) {

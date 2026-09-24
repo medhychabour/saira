@@ -114,6 +114,8 @@ export function Home() {
       <MuteButton />
 
       <section className={styles.intro}>
+        {/* The page title, for search engines and screen readers; the logos say it visually. */}
+        <h1 className="sr-only">{studio.name}</h1>
         <div>
           {/* The Saira symbol, centred, in the same code style as the product logos. */}
           <motion.div

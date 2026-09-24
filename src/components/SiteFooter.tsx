@@ -13,9 +13,9 @@ const EASE = [0.19, 1, 0.22, 1] as const;
 export function SiteFooter({ className = "", reveal }: { className?: string; reveal?: number }) {
   return (
     <footer className={`${styles.footer} ${className}`}>
-      <div className={styles.wordmark}>
+      <Link href="/" className={styles.wordmark} aria-label="Saira Labs home">
         <SairaLogo height={26} reveal={reveal} />
-      </div>
+      </Link>
       <motion.ul
         className={styles.links}
         initial={reveal === undefined ? false : { opacity: 0, filter: "blur(6px)" }}

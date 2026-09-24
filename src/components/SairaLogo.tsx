@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import type { MarkShape } from "./Mark";
 
 // The Saira Labs logo, drawn in the text color. Source file: public/saira.svg.
-// `SairaMark` is the symbol alone; `SairaLogo` is the symbol with the word.
+// `SairaLogo` is the symbol with the word; `SAIRA_MARK` is the symbol's shape.
 // With `reveal`, the symbol shows centred, slides into place, and each letter
 // fades in after it.
 
@@ -99,13 +99,3 @@ export function SairaLogo({
   );
 }
 
-/** The symbol alone. */
-export function SairaMark({ size = 24, className }: { size?: number; className?: string }) {
-  return (
-    <svg viewBox="2 23 340 260" width={size} height={(size * 260) / 340} fill="currentColor" aria-hidden className={className}>
-      {MARK.map((d) => (
-        <path key={d.slice(0, 32)} d={d} />
-      ))}
-    </svg>
-  );
-}

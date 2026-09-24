@@ -8,6 +8,7 @@
 .wordmark {
   display: block;
   line-height: 0;
+  pointer-events: auto;
 }
 
 .links {
