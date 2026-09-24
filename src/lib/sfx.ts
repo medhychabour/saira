@@ -54,6 +54,9 @@ let dry: AudioNode | null = null;
 let room: AudioNode | null = null;
 let noise: AudioBuffer | null = null;
 let muted = false;
+// Phone speakers barely reproduce short blips in this register: on touch
+// screens the sounds play louder, with more grain (upper harmonics) to carry.
+let phone = false;
 const listeners = new Set<() => void>();
 
 try {
@@ -76,6 +79,7 @@ function audio() {
     const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AC) return null;
     ctx = new AC();
+    phone = window.matchMedia("(pointer: coarse)").matches;
 
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -16;
@@ -101,7 +105,9 @@ function audio() {
     const data = noise.getChannelData(0);
     for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
   }
-  if (ctx.state === "suspended") void ctx.resume();
+  // Suspended until a first tap, or "interrupted" on iOS after a call or a
+  // trip to the background: wake it on every play.
+  if (ctx.state !== "running") void ctx.resume();
   return ctx;
 }
 
@@ -125,14 +131,15 @@ function follow(param: AudioParam, points: [number, number][], start: number, sc
 function tone(ac: AudioContext, t: Tone, start: number, wet: number) {
   const end = t.level[t.level.length - 1][0];
   const amp = ac.createGain();
-  follow(amp.gain, t.level, start);
+  follow(amp.gain, t.level, start, phone ? 2.5 : 1);
   route(ac, amp, wet);
 
   // A hair of random detune per play, so it never sounds machine-identical.
   const detune = 1 + (Math.random() * 2 - 1) * 0.015;
+  const grain = phone ? Math.max(t.grain ?? 0, 0.5) : (t.grain ?? 0);
   const layers: [OscillatorType, number][] = [
-    ["sine", 1 - (t.grain ?? 0) * 0.5],
-    ["triangle", t.grain ?? 0],
+    ["sine", 1 - grain * 0.5],
+    ["triangle", grain],
   ];
   for (const [type, level] of layers) {
     if (level <= 0) continue;

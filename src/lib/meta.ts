@@ -6,7 +6,7 @@ const image = {
   url: "/opengraph-image.png",
   width: 1200,
   height: 630,
-  alt: "Saira Labs, an independent, product-driven research lab at the intersection of AI and Web3.",
+  alt: "Saira Labs logo",
 };
 
 export const openGraphBase = { siteName: studio.name, locale: "en_US", images: [image] };
