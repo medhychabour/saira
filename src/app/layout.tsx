@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     description: studio.description,
     locale: "en_US",
   },
-  twitter: { card: "summary_large_image", title: studio.name, description: studio.description },
+  twitter: { card: "summary_large_image", site: "@sairalabs", creator: "@sairalabs", title: studio.name, description: studio.description },
   robots: { index: true, follow: true },
   formatDetection: { email: false, address: false, telephone: false },
 };

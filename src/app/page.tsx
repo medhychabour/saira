@@ -9,8 +9,8 @@ const organization = {
   url: SITE_URL,
   logo: `${SITE_URL}/icon-512.png`,
   description: studio.description,
-  // Real profiles only: no email, no placeholder.
-  sameAs: studio.links.filter((l) => l.href.startsWith("https://") && !("placeholder" in l)).map((l) => l.href),
+  // Public profiles only, not the email.
+  sameAs: studio.links.filter((l) => l.href.startsWith("https://")).map((l) => l.href),
   brand: products.map((p) => ({ "@type": "Brand", name: p.name, url: p.links.site, description: p.bio })),
 };
 

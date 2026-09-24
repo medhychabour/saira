@@ -10,4 +10,4 @@ const image = {
 };
 
 export const openGraphBase = { siteName: studio.name, locale: "en_US", images: [image] };
-export const twitterBase = { card: "summary_large_image" as const, images: [image] };
+export const twitterBase = { card: "summary_large_image" as const, site: "@sairalabs", creator: "@sairalabs", images: [image] };

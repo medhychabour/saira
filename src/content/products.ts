@@ -74,8 +74,7 @@ export const studio = {
     "Through Rewards, Waken, and Warns, we're exploring new frontiers, solving hard technical problems, and building the foundations for a more intelligent and programmable internet.",
   ],
   links: [
-    // Placeholder until the real X account is ready: kept out of search data.
-    { label: "X", href: "https://x.com/sairalabs", placeholder: true },
+    { label: "X", href: "https://x.com/sairalabs" },
     { label: "LinkedIn", href: "https://www.linkedin.com/company/saira-labs/" },
     { label: "Contact", href: "mailto:hello@saira.xyz" },
     { label: "Blog", href: "/blog" },
