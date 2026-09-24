@@ -68,11 +68,10 @@ export const SITE_URL = "https://saira.xyz";
 export const studio = {
   name: "Saira Labs",
   description:
-    "Saira Labs is an independent, product-driven research lab building at the intersection of AI and Web3.",
+    "Saira is an independent, product-driven research lab building at the intersection of AI and Web3.",
   intro: [
     "Saira Labs is an independent, product-driven research lab building at the intersection of AI and Web3. We turn emerging technologies into ambitious products, from autonomous agents to onchain infrastructure.",
     "Through Rewards, Waken, and Warns, we're exploring new frontiers, solving hard technical problems, and building the foundations for a more intelligent and programmable internet.",
-    "We research, build, and ship what's next.",
   ],
   links: [
     // Placeholder until the real X account is ready: kept out of search data.
