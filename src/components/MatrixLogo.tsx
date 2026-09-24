@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { MarkShape } from "./Mark";
 
-// The mark decoded from falling blue code on an early-2000s CRT.
+// The mark decoded from falling code on an early-2000s CRT, blue by default.
 //
 // - On arrival the mark is empty. One wave of code falls down every column
 //   and each cell of the mark locks into place as the wave passes through it.
@@ -12,46 +12,114 @@ import type { MarkShape } from "./Mark";
 // - A single soft sheen travels across the logos one after the other, left to
 //   right, then rests before the next pass.
 // - Under the pointer, glyphs scramble, brighten and part.
+// - An optional gesture keeps the shape gently alive (flap, spin, pulse, sway).
 
 const GLYPHS = "0123456789$#JS75^:=+*<>ｱｲｳｴｵｶｷｸ";
-const ROWS = 28;
-const COLS = 46;
+// Default grid: rows and columns of glyphs.
+const GRID = { rows: 28, cols: 46 };
 const FPS = 30;
 
 type Drop = { y: number; speed: number; len: number };
 
+// A small living motion for the shape, as a transform around its centre at
+// time t (seconds): wings that flap, a slow spin, a breath, a sway.
+export type Gesture = "flap" | "spin" | "pulse" | "sway";
+
+// Smooth wandering value in [-1, 1]: a few slow sines that never line up,
+// so it drifts without repeating in any way the eye can catch.
+const wander = (t: number, seed: number) =>
+  (Math.sin(t * 0.61 + seed) + Math.sin(t * 0.23 + seed * 2.1) * 0.8 + Math.sin(t * 1.07 + seed * 0.7) * 0.5) / 2.3;
+
+// Flight state for the flap: the wing phase is integrated frame by frame, so
+// its speed can change smoothly without the wings ever jumping.
+type Flight = { phase: number; last: number };
+
+// A butterfly: bursts of quick beats and slow glides that blend into each
+// other, beats that are sometimes wide and sometimes small, and a body that
+// floats and tilts a little. Nothing stops dead.
+function flap(state: Flight, t: number) {
+  const dt = Math.min(0.1, Math.max(0, t - state.last));
+  state.last = t;
+  // Beat speed drifts between a lazy glide (~0.35 Hz) and a flutter (~2.2 Hz).
+  const busy = Math.pow((wander(t * 0.5, 1.3) + 1) / 2, 1.6);
+  state.phase += dt * Math.PI * 2 * (0.35 + 1.85 * busy);
+  // Wide beats when fluttering hard, smaller ones when gliding.
+  const amp = 0.14 + 0.3 * (0.35 * busy + 0.65 * ((wander(t * 0.8, 4.2) + 1) / 2));
+  const fold = ((1 - Math.cos(state.phase)) / 2) * amp;
+  return {
+    sx: 1 - fold,
+    sy: 1 + fold * 0.06,
+    rot: wander(t * 0.7, 2.7) * 0.06,
+    dy: wander(t * 0.9, 5.1) * 0.03 + fold * 0.04,
+  };
+}
+
+function gestureAt(g: Gesture, t: number): { sx: number; sy: number; rot: number } {
+  switch (g) {
+    case "flap":
+      return { sx: 1, sy: 1, rot: 0 }; // handled by `flap`, which keeps state
+    case "spin":
+      return { sx: 1, sy: 1, rot: (t / 24) * Math.PI * 2 };
+    case "pulse": {
+      const b = 0.5 - 0.5 * Math.cos((t / 3.2) * Math.PI * 2);
+      return { sx: 1 - 0.06 * b, sy: 1 - 0.06 * b, rot: 0 };
+    }
+    case "sway":
+      return { sx: 1, sy: 1, rot: Math.sin((t / 4.5) * Math.PI * 2) * 0.2 };
+  }
+}
+
 const pick = () => GLYPHS[(Math.random() * GLYPHS.length) | 0];
 
-// Two close blues alternating in soft diagonal bands.
 type RGB = [number, number, number];
-const STOPS: [number, RGB][] = [
-  [0, [0x5a, 0xa8, 0xff]],
-  [0.26, [0x7c, 0xc4, 0xff]],
-  [0.51, [0x5a, 0xa8, 0xff]],
-  [0.75, [0x7c, 0xc4, 0xff]],
-  [1, [0x5a, 0xa8, 0xff]],
-];
-const BRIGHT: RGB = [190, 225, 255]; // under the pointer
-const HIGHLIGHT: RGB = [235, 245, 255]; // wave heads, flashes, the sheen
+type Palette = { stops: [number, RGB][]; bright: RGB; highlight: RGB };
 
-function gradientAt(t: number): RGB {
-  for (let i = 1; i < STOPS.length; i++) {
-    const [t1, c1] = STOPS[i];
-    const [t0, c0] = STOPS[i - 1];
+// Two close tones alternating in soft diagonal bands, a brighter one under
+// the pointer, and the highlight for wave heads, flashes and the sheen.
+const PALETTES: Record<"blue" | "white", Palette> = {
+  blue: {
+    stops: [
+      [0, [0x5a, 0xa8, 0xff]],
+      [0.26, [0x7c, 0xc4, 0xff]],
+      [0.51, [0x5a, 0xa8, 0xff]],
+      [0.75, [0x7c, 0xc4, 0xff]],
+      [1, [0x5a, 0xa8, 0xff]],
+    ],
+    bright: [190, 225, 255],
+    highlight: [235, 245, 255],
+  },
+  white: {
+    stops: [
+      [0, [0xd8, 0xd8, 0xdc]],
+      [0.26, [0xff, 0xff, 0xff]],
+      [0.51, [0xd8, 0xd8, 0xdc]],
+      [0.75, [0xff, 0xff, 0xff]],
+      [1, [0xd8, 0xd8, 0xdc]],
+    ],
+    bright: [255, 255, 255],
+    highlight: [255, 255, 255],
+  },
+};
+
+function gradientAt(stops: [number, RGB][], t: number): RGB {
+  for (let i = 1; i < stops.length; i++) {
+    const [t1, c1] = stops[i];
+    const [t0, c0] = stops[i - 1];
     if (t <= t1) {
       const k = (t - t0) / (t1 - t0);
       return c0.map((v, j) => v + (c1[j] - v) * k) as RGB;
     }
   }
-  return STOPS[STOPS.length - 1][1];
+  return stops[stops.length - 1][1];
 }
 
 const mix = (a: RGB, b: RGB, k: number) => a.map((v, j) => Math.round(v + (b[j] - v) * k)).join(",");
 
 // Each cell takes its colour from a diagonal pass through the gradient.
-const TINT = Array.from({ length: ROWS * COLS }, (_, i) =>
-  gradientAt(Math.min(1, ((i % COLS) / COLS) * 0.75 + (Math.floor(i / COLS) / ROWS) * 0.25)),
-);
+const tintFor = (stops: [number, RGB][], rows: number, cols: number) =>
+  Array.from({ length: rows * cols }, (_, i) =>
+    gradientAt(stops, Math.min(1, ((i % cols) / cols) * 0.75 + (Math.floor(i / cols) / rows) * 0.25)),
+  );
 
 // The sheen crosses one logo in SWEEP seconds, logos in turn, then rests so
 // a full cycle lasts PERIOD seconds.
@@ -59,7 +127,23 @@ const SWEEP = 1.8;
 const PERIOD = 8;
 const WIDTH = 0.3; // half-width of the sheen along the diagonal
 
-export function MatrixLogo({ mark, size, index = 0 }: { mark: MarkShape; size: number; index?: number }) {
+export function MatrixLogo({
+  mark,
+  size,
+  index = 0,
+  tone = "blue",
+  grid = GRID,
+  gesture,
+}: {
+  mark: MarkShape;
+  size: number;
+  index?: number;
+  tone?: keyof typeof PALETTES;
+  grid?: { rows: number; cols: number };
+  gesture?: Gesture;
+}) {
+  const { rows: ROWS, cols: COLS } = grid;
+  const { stops, bright: BRIGHT, highlight: HIGHLIGHT } = PALETTES[tone];
   const canvas = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -78,23 +162,45 @@ export function MatrixLogo({ mark, size, index = 0 }: { mark: MarkShape; size: n
     const pc = probe.getContext("2d", { willReadFrequently: true })!;
     const [, , w, h] = mark.viewBox.split(" ").map(Number);
     const k = (N * 0.78) / Math.max(w, h);
-    pc.setTransform(k, 0, 0, k, (N - w * k) / 2, (N - h * k) / 2);
-    pc.fillStyle = "#fff";
-    for (const d of mark.paths) pc.fill(new Path2D(d));
-    const px = pc.getImageData(0, 0, N, N).data;
+    const paths = mark.paths.map((d) => new Path2D(d));
+    const TINT = tintFor(stops, ROWS, COLS);
     const cover = new Float32Array(ROWS * COLS);
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const x0 = Math.floor((c / COLS) * N);
-        const x1 = Math.floor(((c + 1) / COLS) * N);
-        const y0 = Math.floor((r / ROWS) * N);
-        const y1 = Math.floor(((r + 1) / ROWS) * N);
-        let sum = 0;
-        let count = 0;
-        for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++, count++) sum += px[(y * N + x) * 4 + 3];
-        cover[r * COLS + c] = sum / (count * 255);
+    const flight: Flight = { phase: 0, last: 0 };
+    const sample = (t: number) => {
+      pc.setTransform(1, 0, 0, 1, 0, 0);
+      pc.clearRect(0, 0, N, N);
+      // Centre of the canvas, then the gesture, then the mark centred on it.
+      pc.translate(N / 2, N / 2);
+      if (gesture === "flap") {
+        const g = flap(flight, t);
+        pc.translate(0, g.dy * N);
+        pc.rotate(g.rot);
+        pc.scale(g.sx, g.sy);
+      } else if (gesture) {
+        const g = gestureAt(gesture, t);
+        pc.rotate(g.rot);
+        pc.scale(g.sx, g.sy);
       }
-    }
+      pc.scale(k, k);
+      pc.translate(-w / 2, -h / 2);
+      pc.fillStyle = "#fff";
+      for (const p of paths) pc.fill(p);
+      const px = pc.getImageData(0, 0, N, N).data;
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const x0 = Math.floor((c / COLS) * N);
+          const x1 = Math.floor(((c + 1) / COLS) * N);
+          const y0 = Math.floor((r / ROWS) * N);
+          const y1 = Math.floor(((r + 1) / ROWS) * N);
+          let sum = 0;
+          let count = 0;
+          for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++, count++) sum += px[(y * N + x) * 4 + 3];
+          cover[r * COLS + c] = sum / (count * 255);
+        }
+      }
+    };
+    const born = performance.now();
+    sample(0);
 
     // Round vignette for the ambient rain, so the square canvas never shows.
     const vignette = new Float32Array(ROWS * COLS);
@@ -154,6 +260,8 @@ export function MatrixLogo({ mark, size, index = 0 }: { mark: MarkShape; size: n
       lc.globalCompositeOperation = "source-over";
 
       for (const d of drops) if (d.y - d.len <= ROWS) d.y += d.speed;
+      if (gesture) sample((now - born) / 1000);
+      const decoded = drops.every((d) => d.y - d.len > ROWS);
 
       for (let r = 0; r < ROWS; r++) {
         const y = (r + 0.5) * ch;
@@ -161,7 +269,9 @@ export function MatrixLogo({ mark, size, index = 0 }: { mark: MarkShape; size: n
         for (let c = 0; c < COLS; c++) {
           const i = r * COLS + c;
           const v = cover[i];
-          const inside = v >= 0.3;
+          // A moving shape gets soft edges: partly covered cells show faintly.
+          const inside = v >= (gesture ? 0.06 : 0.3);
+          const edge = gesture ? Math.min(1, v / 0.6) : 1;
 
           // The wave over this cell: 1 at the head, fading up the tail.
           const t = drops[c].y - r;
@@ -197,13 +307,13 @@ export function MatrixLogo({ mark, size, index = 0 }: { mark: MarkShape; size: n
 
           let a: number;
           let color: string;
-          if (inside && locked[i]) {
+          if (inside && (locked[i] || decoded)) {
             if (Math.random() < 0.05) glyph[i] = pick();
             a = (0.72 + v * 0.28) * (0.88 + Math.random() * 0.12) + rain * 0.25 + lift * 0.4 + sheen * 0.35;
             const f = flash[i];
             flash[i] *= 0.82;
             color = f > 0.35 || head ? HIGHLIGHT.join(",") : lift > 0.5 ? BRIGHT.join(",") : mix(TINT[i], HIGHLIGHT, sheen * 0.7);
-            a = Math.min(1, a + f * 0.4);
+            a = Math.min(1, a + f * 0.4) * edge;
           } else {
             // The wave: full inside the mark, faint around it.
             const strength = inside ? 0.9 : 0.5 * vignette[i];
@@ -255,7 +365,8 @@ export function MatrixLogo({ mark, size, index = 0 }: { mark: MarkShape; size: n
       el.removeEventListener("pointermove", onMove);
       el.removeEventListener("pointerleave", onLeave);
     };
-  }, [mark, size]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mark, size, ROWS, COLS, tone, gesture]);
 
   return <canvas ref={canvas} style={{ width: size, height: size, display: "block" }} />;
 }

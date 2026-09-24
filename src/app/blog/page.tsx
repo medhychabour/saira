@@ -1,32 +1,29 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { SairaLogo } from "@/components/SairaLogo";
+import { BlogIndex } from "@/components/BlogIndex";
+import { BlogNav } from "@/components/BlogNav";
+import { SiteFooter } from "@/components/SiteFooter";
 import { formatDate, getPosts } from "@/lib/blog";
 import styles from "./blog.module.css";
 
 export const metadata: Metadata = { title: "Blog" };
 
 export default function BlogPage() {
-  const posts = getPosts();
+  const posts = getPosts().map((p) => ({
+    slug: p.slug,
+    title: p.title,
+    summary: p.summary,
+    topic: p.topic,
+    date: formatDate(p.date),
+    iso: p.date,
+  }));
+
   return (
-    <main className={styles.page}>
-      <nav className={styles.nav}>
-        <Link href="/" aria-label="Saira Labs home">
-          <SairaLogo height={18} />
-        </Link>
-      </nav>
-      <h1 className={styles.heading}>Blog</h1>
-      <ul className={styles.list}>
-        {posts.map((p) => (
-          <li key={p.slug}>
-            <Link href={`/blog/${p.slug}`}>
-              <span className={styles.title}>{p.title}</span>
-              {p.summary && <span className={styles.summary}>{p.summary}</span>}
-              <time className={styles.date}>{formatDate(p.date)}</time>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </main>
+    <div className={styles.shell}>
+      <main className={styles.page}>
+        <BlogNav href="/" label="Back home" />
+        <BlogIndex title="Blog" posts={posts} />
+      </main>
+      <SiteFooter className={styles.footer} />
+    </div>
   );
 }

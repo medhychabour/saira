@@ -1,0 +1,35 @@
+.footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wordmark {
+  display: block;
+  line-height: 0;
+}
+
+.links {
+  display: flex;
+  gap: 0.25rem;
+  list-style: none;
+  pointer-events: auto;
+}
+
+.links li + li::before {
+  content: "·";
+  margin-right: 0.25rem;
+  color: var(--color-light);
+}
+
+/* Grey, no underline, white on hover: they are secondary */
+.links a {
+  color: var(--color-light);
+  font-size: 0.875rem;
+  transition: color 200ms;
+}
+
+.links a:hover {
+  color: var(--color);
+}

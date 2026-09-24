@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { SairaLogo } from "@/components/SairaLogo";
+import { BlogNav } from "@/components/BlogNav";
+import { SiteFooter } from "@/components/SiteFooter";
+import { topics } from "@/content/products";
 import { formatDate, getPost, getPosts } from "@/lib/blog";
 import styles from "../blog.module.css";
 
@@ -19,23 +20,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PostPage({ params }: Props) {
   const post = getPost((await params).slug);
   if (!post) notFound();
+  const topic = topics.find((t) => t.key === post.topic)?.name ?? post.topic;
 
   return (
-    <main className={styles.page}>
-      <nav className={styles.nav}>
-        <Link href="/" aria-label="Saira Labs home">
-          <SairaLogo height={18} />
-        </Link>
-        <span>/</span>
-        <Link href="/blog">Blog</Link>
-      </nav>
-      <article>
-        <header className={styles.postHeader}>
-          <time className={styles.date}>{formatDate(post.date)}</time>
-          <h1>{post.title}</h1>
-        </header>
-        <div className={styles.prose} dangerouslySetInnerHTML={{ __html: post.html }} />
-      </article>
-    </main>
+    <div className={styles.shell}>
+      <main className={styles.page}>
+        <BlogNav href="/blog" label="Blog" />
+        <article>
+          <header className={styles.postHeader}>
+            <h1>{post.title}</h1>
+            <span className={styles.meta}>
+              <time dateTime={post.date}>{formatDate(post.date)}</time>
+              <span aria-hidden>·</span>
+              <span>{topic}</span>
+            </span>
+          </header>
+          <div className={styles.prose} dangerouslySetInnerHTML={{ __html: post.html }} />
+        </article>
+      </main>
+      <SiteFooter className={styles.footer} />
+    </div>
   );
 }

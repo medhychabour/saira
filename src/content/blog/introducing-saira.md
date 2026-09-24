@@ -2,6 +2,7 @@
 title: Introducing Saira
 date: 2026-09-24
 summary: A small studio building products for the onchain and agent economy.
+topic: saira
 ---
 
 Saira is a product studio. We build a few focused tools and run them ourselves, from the first sketch to production.

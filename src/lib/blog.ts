@@ -1,17 +1,19 @@
 import fs from "node:fs";
 import path from "node:path";
 import { marked } from "marked";
+import { topics } from "@/content/products";
 
 // Posts live in src/content/blog/<slug>.md with a small frontmatter block:
 // ---
 // title: ...
 // date: 2026-09-24
 // summary: ...
+// topic: saira (or a product slug: rewards, warns, waken...)
 // ---
 
 const DIR = path.join(process.cwd(), "src/content/blog");
 
-export type Post = { slug: string; title: string; date: string; summary: string; body: string };
+export type Post = { slug: string; title: string; date: string; summary: string; topic: string; body: string };
 
 function parse(slug: string, raw: string): Post {
   const match = raw.replace(/\r\n/g, "\n").match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
@@ -20,7 +22,9 @@ function parse(slug: string, raw: string): Post {
     const i = line.indexOf(":");
     if (i > 0) meta[line.slice(0, i).trim()] = line.slice(i + 1).trim();
   }
-  return { slug, title: meta.title ?? slug, date: meta.date ?? "", summary: meta.summary ?? "", body: match?.[2] ?? raw };
+  // An unknown or missing topic falls back to the studio.
+  const topic = topics.some((t) => t.key === meta.topic) ? meta.topic : "saira";
+  return { slug, title: meta.title ?? slug, date: meta.date ?? "", summary: meta.summary ?? "", topic, body: match?.[2] ?? raw };
 }
 
 export function getPosts(): Post[] {

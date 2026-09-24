@@ -1,9 +1,29 @@
 // Every product shown on the home page. Add an entry here to add a logo;
 // its mark is drawn from the paths in components/Mark.tsx (a disc until one is added).
 
+// Surfaces share one colour each across products (see components/Home.module.css).
+export type Surface = "API" | "App" | "CLI" | "MCP" | "SDK";
+
+// Small round icons, shown overlapping with their name on hover (see components/DetailIcon.tsx).
+export type IconKey =
+  | "base"
+  | "somnia"
+  | "claude-code"
+  | "codex"
+  | "cursor"
+  | "openclaw"
+  | "hermes"
+  | "zeroclaw"
+  | "claude"
+  | "chatgpt"
+  | "gemini"
+  | "deepseek"
+  | "kimi";
+
 export type Detail =
   | { label: string; value: string }
-  | { label: string; tags: string[] };
+  | { label: string; surfaces: Surface[] }
+  | { label: string; icons: IconKey[] };
 
 export type Product = {
   slug: string;
@@ -18,38 +38,39 @@ export const products: Product[] = [
   {
     slug: "rewards",
     name: "Rewards",
-    bio: "Onchain loyalty for Web3 products. Points, badges, leaderboards and claimable rewards, all driven by what wallets actually do.",
+    bio: "Programmable loyalty infrastructure for Web3. Turn onchain activity into actionable user intelligence, automated incentives and personalized rewards that drive retention.",
     details: [
-      { label: "Surfaces", tags: ["App", "API", "MCP"] },
-      { label: "Industry", value: "Loyalty" },
-      { label: "Chains", tags: ["Somnia", "Base"] },
-      { label: "Status", value: "Live" },
+      { label: "Surfaces", surfaces: ["API", "App", "MCP"] },
+      { label: "Industry", value: "Web3 loyalty" },
+      { label: "Since", value: "2026" },
+      { label: "Chains", icons: ["somnia", "base"] },
+      { label: "Status", value: "Active" },
     ],
-    note: "Includes Rewards Score, a reputation token that follows a wallet across apps.",
     links: { site: "https://rewards.so" },
   },
   {
     slug: "warns",
     name: "Warns",
-    bio: "A security layer for agent payments. Warns checks every payment an AI agent is about to make, before anything is signed.",
+    bio: "The security layer for agentic payments. Enforce programmable spending policies, assess transaction risk and secure autonomous financial operations before anything is signed.",
     details: [
-      { label: "Surfaces", tags: ["API", "SDK", "App"] },
-      { label: "Industry", value: "Security" },
-      { label: "Chains", tags: ["Base"] },
-      { label: "Status", value: "Live" },
+      { label: "Surfaces", surfaces: ["API", "App", "SDK"] },
+      { label: "Industry", value: "Agentic payments" },
+      { label: "Since", value: "2026" },
+      { label: "Chains", icons: ["base"] },
+      { label: "Status", value: "Private beta" },
     ],
-    note: "Point your x402 agent at our traps and see what it pays.",
     links: { site: "https://warns.xyz" },
   },
   {
     slug: "waken",
     name: "Waken",
-    bio: "Persistent agents hosted in the cloud. Every agent gets its own machine and a memory that never resets. Sleeping agents are free.",
+    bio: "Cloud infrastructure purpose-built for autonomous AI agents. Deploy persistent agents in isolated sandboxes with dedicated compute, durable memory and scalable execution.",
     details: [
-      { label: "Surfaces", tags: ["App", "CLI"] },
+      { label: "Surfaces", surfaces: ["App", "CLI"] },
       { label: "Industry", value: "AI infrastructure" },
-      { label: "Runs", tags: ["Claude Code", "Codex", "Cursor"] },
-      { label: "Status", value: "Invite only" },
+      { label: "Since", value: "2026" },
+      { label: "Runs", icons: ["claude-code", "codex", "cursor", "openclaw", "hermes", "zeroclaw"] },
+      { label: "Status", value: "Private beta" },
     ],
     links: { site: "https://waken.sh" },
   },
@@ -65,7 +86,13 @@ export const studio = {
     "We research, build, and ship what's next.",
   ],
   links: [
+    // Placeholder until the real X account is ready.
     { label: "X", href: "https://x.com/sairalabs" },
+    { label: "LinkedIn", href: "https://www.linkedin.com/company/saira-labs/" },
+    { label: "Contact", href: "mailto:hello@saira.xyz" },
     { label: "Blog", href: "/blog" },
   ],
 };
+
+// Blog topics: the studio itself, then one per product, in the same order.
+export const topics = [{ key: "saira", name: "Saira" }, ...products.map((p) => ({ key: p.slug, name: p.name }))];

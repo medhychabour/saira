@@ -1,13 +1,15 @@
 "use client";
 
-import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { products, studio, type Product } from "@/content/products";
+import { products, studio, type Product, type Surface } from "@/content/products";
 import { play, setMuted, useMuted } from "@/lib/sfx";
+import { Badge, TONES } from "./Badge";
+import { DetailIcons } from "./DetailIcon";
 import { MARKS, type MarkShape } from "./Mark";
 import { MatrixLogo } from "./MatrixLogo";
-import { SairaLogo } from "./SairaLogo";
+import { SAIRA_MARK } from "./SairaLogo";
+import { SiteFooter } from "./SiteFooter";
 import styles from "./Home.module.css";
 
 const EASE = [0.19, 1, 0.22, 1] as const;
@@ -16,6 +18,18 @@ const MOVE = { desktop: 0.9, mobile: 0.5 };
 const INTRO_HIDDEN = { opacity: 0, filter: "blur(10px)", y: 6 };
 const INTRO_SHOWN = { opacity: 1, filter: "blur(0px)", y: 0 };
 const MOBILE = 920;
+// Colour of the product logos. "blue" was the previous choice, kept to switch back.
+const LOGO_TONE = "white";
+// When the footer logo starts its intro; the links follow once it is complete.
+const LOGO_REVEAL = 0.6;
+// Each surface keeps the same badge tone in every product.
+const SURFACE_TONE: Record<Surface, string> = {
+  API: TONES.green,
+  App: TONES.blue,
+  CLI: TONES.orange,
+  MCP: TONES.cyan,
+  SDK: TONES.pink,
+};
 // Logos are drawn at their open size and scaled down at rest, so they stay sharp.
 const SIZE = { desktop: 260, mobile: 190 };
 const REST_SCALE = { desktop: 0.6, mobile: 0.5 };
@@ -23,7 +37,7 @@ const REST_SCALE = { desktop: 0.6, mobile: 0.5 };
 const FALLBACK: MarkShape = { viewBox: "0 0 100 100", paths: ["M50 2a48 48 0 1 0 0.01 0Z"] };
 
 // The logos sit a little below the middle to leave room for the intro above.
-const logoOffset = (h: number, mobile: boolean) => (mobile ? h * 0.18 : Math.min(110, h * 0.11));
+const logoOffset = (h: number, mobile: boolean) => (mobile ? h * 0.22 : Math.min(150, h * 0.16));
 
 function subscribeResize(cb: () => void) {
   window.addEventListener("resize", cb);
@@ -101,6 +115,20 @@ export function Home() {
 
       <section className={styles.intro}>
         <div>
+          {/* The Saira symbol, centred, in the same code style as the product logos. */}
+          <motion.div
+            className={styles.logotype}
+            initial={INTRO_HIDDEN}
+            animate={introShown ? INTRO_SHOWN : INTRO_HIDDEN}
+            transition={introShown ? { duration: loaded.current ? 0.8 : 1.1, ease: EASE, delay: loaded.current ? 0 : 0.1 } : { duration: 0.25, ease: EASE }}
+          >
+            {/* Smaller on phones and short screens, so the text never runs off the top. */}
+            {mobile || h < 800 ? (
+              <MatrixLogo key="small" mark={SAIRA_MARK} size={72} tone={LOGO_TONE} grid={{ rows: 16, cols: 26 }} index={products.length} />
+            ) : (
+              <MatrixLogo key="large" mark={SAIRA_MARK} size={120} tone={LOGO_TONE} grid={{ rows: 22, cols: 36 }} index={products.length} />
+            )}
+          </motion.div>
           {studio.intro.map((p, i) => (
             <motion.p
               key={p.slice(0, 24)}
@@ -108,7 +136,7 @@ export function Home() {
               animate={introShown ? INTRO_SHOWN : INTRO_HIDDEN}
               transition={
                 introShown
-                  ? { duration: loaded.current ? 0.8 : 1.1, ease: EASE, delay: (loaded.current ? 0 : 0.15) + i * (loaded.current ? 0.1 : 0.18) }
+                  ? { duration: loaded.current ? 0.8 : 1.1, ease: EASE, delay: (loaded.current ? 0 : 0.15) + (i + 1) * (loaded.current ? 0.1 : 0.18) }
                   : { duration: 0.25, ease: EASE }
               }
             >
@@ -126,31 +154,7 @@ export function Home() {
         </ul>
       </div>
 
-      <footer className={styles.footer}>
-        <motion.div
-          className={styles.wordmark}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.2, ease: EASE, delay: 0.6 }}
-        >
-          <SairaLogo height={26} />
-        </motion.div>
-        <ul className={styles.links}>
-          {studio.links.map((l) => (
-            <li key={l.label}>
-              {l.href.startsWith("/") ? (
-                <Link href={l.href} onClick={() => play("click")}>
-                  {l.label}
-                </Link>
-              ) : (
-                <a href={l.href} target="_blank" rel="noopener noreferrer" onClick={() => play("click")}>
-                  {l.label}
-                </a>
-              )}
-            </li>
-          ))}
-        </ul>
-      </footer>
+      <SiteFooter className={styles.footer} reveal={LOGO_REVEAL} />
 
       <Panel product={active === null ? null : products[active]} onClose={close} />
 
@@ -184,7 +188,7 @@ function highlight(text: string) {
     const product = products.find((p) => p.name === part);
     if (!product) return part;
     return product.links.site ? (
-      <a key={i} href={product.links.site} target="_blank" rel="noopener noreferrer" onClick={() => play("click")}>
+      <a key={i} href={product.links.site} target="_blank" rel="noopener noreferrer">
         {part}
       </a>
     ) : (
@@ -263,7 +267,7 @@ function LogoItem({
               animate={{ scale: selected ? 1 : rest }}
               transition={{ duration: swapping ? move * 0.85 : move, ease: EASE }}
             >
-              <MatrixLogo mark={MARKS[product.slug] ?? FALLBACK} size={size} index={index} />
+              <MatrixLogo mark={MARKS[product.slug] ?? FALLBACK} size={size} index={index} tone={LOGO_TONE} />
             </motion.span>
           </motion.span>
           <span className={styles.name}>{product.name}</span>
@@ -328,69 +332,106 @@ function Panel({ product, onClose }: { product: Product | null; onClose: () => v
   );
 }
 
+// Panel content comes in piece by piece: title, text, each detail row, then
+// the links, each from a soft blur and a few pixels lower.
+const REVEAL = {
+  hidden: {},
+  shown: { transition: { staggerChildren: 0.05, delayChildren: 0.06 } },
+};
+const REVEAL_ITEM = {
+  hidden: { opacity: 0, filter: "blur(8px)", y: 6 },
+  shown: { opacity: 1, filter: "blur(0px)", y: 0, transition: { duration: 0.55, ease: EASE } },
+};
+
+const LINK_ICONS: Record<"site" | "docs" | "x" | "github", { label: string; icon: React.ReactNode }> = {
+  site: {
+    label: "Website",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z" />
+      </svg>
+    ),
+  },
+  docs: {
+    label: "Docs",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z" />
+        <path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5" />
+      </svg>
+    ),
+  },
+  x: {
+    label: "X",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M17.75 3h3.07l-6.7 7.66L22 21h-6.18l-4.84-6.33L5.44 21H2.37l7.17-8.2L2 3h6.33l4.37 5.78zm-1.08 16.2h1.7L7.4 4.72H5.58z" />
+      </svg>
+    ),
+  },
+  github: {
+    label: "GitHub",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.6 9.6 0 0 1 5 0c1.91-1.3 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.75c0 .27.18.58.69.48A10 10 0 0 0 12 2z" />
+      </svg>
+    ),
+  },
+};
+
 function Details({ product }: { product: Product }) {
-  const { links } = product;
-  const linkList = [
-    links.site && { label: "Website", href: links.site },
-    links.docs && { label: "Docs", href: links.docs },
-    links.x && { label: "X", href: links.x },
-    links.github && { label: "GitHub", href: links.github },
-  ].filter(Boolean) as { label: string; href: string }[];
+  const links = (Object.keys(LINK_ICONS) as (keyof typeof LINK_ICONS)[]).filter((k) => product.links[k]);
 
   return (
-    <>
-      <motion.div
-        className={styles.bio}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.2, delay: 0.1 }}
-      >
-        <h1>{product.name}</h1>
-        <p>{product.bio}</p>
-      </motion.div>
+    <motion.div className={styles.panelContent} variants={REVEAL} initial="hidden" animate="shown">
+      <div className={styles.bio}>
+        <motion.h1 variants={REVEAL_ITEM}>{product.name}</motion.h1>
+        <motion.p variants={REVEAL_ITEM}>{product.bio}</motion.p>
+      </div>
 
-      <motion.dl
-        className={styles.details}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.2, delay: 0.2 }}
-      >
+      <dl className={styles.details}>
         {product.details.map((d) => (
-          <div key={d.label}>
+          <motion.div key={d.label} variants={REVEAL_ITEM}>
             <dt>{d.label}</dt>
             <dd>
-              {"tags" in d ? (
+              {"surfaces" in d ? (
                 <ul className={styles.tags}>
-                  {d.tags.map((t) => (
-                    <li key={t}>{t}</li>
+                  {[...d.surfaces].sort().map((t) => (
+                    <li key={t}>
+                      <Badge tone={SURFACE_TONE[t]}>{t}</Badge>
+                    </li>
                   ))}
                 </ul>
+              ) : "icons" in d ? (
+                <DetailIcons icons={d.icons} />
               ) : (
                 d.value
               )}
             </dd>
-          </div>
+          </motion.div>
         ))}
-      </motion.dl>
+      </dl>
 
-      <motion.div
-        className={styles.panelFooter}
-        initial={{ opacity: 0, y: "-0.5rem" }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2, delay: 0.3 }}
-      >
+      <motion.div className={styles.panelFooter} variants={REVEAL_ITEM}>
         <ul className={styles.panelLinks}>
-          {linkList.map((l) => (
-            <li key={l.label}>
-              <a href={l.href} target="_blank" rel="noopener noreferrer" onClick={() => play("click")}>
-                {l.label}
+          {links.map((k) => (
+            <li key={k}>
+              <a
+                href={product.links[k]}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={LINK_ICONS[k].label}
+                title={LINK_ICONS[k].label}
+              >
+                {LINK_ICONS[k].icon}
               </a>
             </li>
           ))}
         </ul>
         {product.note && <p>{product.note}</p>}
       </motion.div>
-    </>
+    </motion.div>
   );
 }
 
@@ -401,7 +442,6 @@ function MuteButton() {
       className={styles.mute}
       onClick={() => {
         setMuted(!muted);
-        if (muted) setTimeout(() => play("click"), 0);
       }}
       aria-label={muted ? "Turn sound on" : "Turn sound off"}
     >

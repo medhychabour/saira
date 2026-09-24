@@ -1,10 +1,20 @@
+"use client";
+
+import { motion } from "motion/react";
+import type { MarkShape } from "./Mark";
+
 // The Saira Labs logo, drawn in the text color. Source file: public/saira.svg.
 // `SairaMark` is the symbol alone; `SairaLogo` is the symbol with the word.
+// With `reveal`, the symbol shows centred, slides into place, and each letter
+// fades in after it.
 
 const MARK = [
   "M246.381 60.138L172.293 166.048L98.2041 60.138L2.74512 23.3384L58.7415 144.688L172.293 176.777L285.844 144.688L341.84 23.3384L246.381 60.138Z",
   "M239.581 191.655L172.292 176.778L105.003 191.655L64.9941 158.882V207.096L125.24 282.809L172.292 187.629L219.343 282.809L279.59 207.096V158.882L239.581 191.655Z",
 ];
+
+/** The symbol as a mark shape, centred in its box, for the Matrix rendering. */
+export const SAIRA_MARK: MarkShape = { viewBox: "0 0 344 306", paths: MARK };
 
 const WORD = [
   "M442.32 245.295C414.963 245.295 394.558 240.586 381.104 231.168C367.874 221.526 360.475 206.166 358.905 185.088H410.03C410.927 194.282 413.842 200.785 418.775 204.597C423.933 208.408 432.117 210.314 443.329 210.314C462.837 210.314 472.591 204.709 472.591 193.497C472.591 188.115 470.461 184.079 466.2 181.388C461.94 178.473 454.092 176.119 442.656 174.325L420.121 170.625C381.104 164.571 361.596 146.857 361.596 117.482C361.596 99.9919 368.323 86.538 381.777 77.1202C395.231 67.4782 414.515 62.6572 439.629 62.6572C491.427 62.6572 518.335 82.5018 520.353 122.191H471.582C471.358 105.822 460.707 97.6375 439.629 97.6375C421.914 97.6375 413.057 103.131 413.057 114.119C413.057 119.052 415.075 122.864 419.112 125.554C423.148 128.245 429.538 130.263 438.283 131.609L464.182 135.309C485.036 138.448 500.396 144.39 510.262 153.135C520.128 161.88 525.062 173.877 525.062 189.124C525.062 207.063 517.774 220.966 503.199 230.832C488.848 240.474 468.555 245.295 442.32 245.295Z",
@@ -18,20 +28,72 @@ const WORD = [
   "M1606.92 244.286C1560.5 244.286 1535.95 224.553 1533.26 185.088H1560.5C1562.07 198.094 1566.33 207.4 1573.29 213.005C1580.46 218.387 1591.67 221.078 1606.92 221.078C1634.73 221.078 1648.63 212.108 1648.63 194.17C1648.63 186.322 1645.71 180.379 1639.88 176.343C1634.28 172.307 1623.96 168.831 1608.94 165.916L1592.79 162.889C1556.69 156.162 1538.64 139.121 1538.64 111.764C1538.64 96.7407 1544.25 84.8563 1555.46 76.1112C1566.89 67.1419 1582.37 62.6573 1601.87 62.6573C1647.84 62.6573 1671.39 81.8292 1672.51 120.173H1645.6C1644.93 107.616 1641.12 98.7588 1634.16 93.6014C1627.21 88.444 1616.45 85.8654 1601.87 85.8654C1590.21 85.8654 1581.25 88.1077 1574.97 92.5924C1568.69 97.077 1565.55 103.356 1565.55 111.428C1565.55 119.052 1568.24 124.77 1573.62 128.582C1579 132.394 1587.97 135.645 1600.53 138.336L1616 141.363C1637.3 145.623 1652.55 151.678 1661.75 159.526C1671.16 167.374 1675.87 178.361 1675.87 192.488C1675.87 208.857 1669.71 221.638 1657.37 230.832C1645.26 239.801 1628.45 244.286 1606.92 244.286Z",
 ];
 
+const EASE = [0.19, 1, 0.22, 1] as const;
+// How far the symbol sits from its place when it first shows, so it is
+// centred on the whole lockup: lockup centre (1679 / 2) minus symbol centre (172).
+const CENTRE_OFFSET = 1679 / 2 - 172;
+// Timing of the intro, in seconds after `reveal`.
+const SLIDE_AT = 0.4;
+// Letters start while the symbol is still sliding, so it reads as one motion.
+const LETTERS_AT = SLIDE_AT + 0.08;
+const LETTER_GAP = 0.045;
+const LETTER_DURATION = 0.8;
+
+/** When the intro started at `reveal` is fully done, in seconds. */
+export const logoRevealEnd = (reveal: number) => reveal + LETTERS_AT + (WORD.length - 1) * LETTER_GAP + LETTER_DURATION;
+
 /** The full lockup, symbol plus word, sized by its height. */
-export function SairaLogo({ height = 24, className }: { height?: number; className?: string }) {
+export function SairaLogo({
+  height = 24,
+  className,
+  reveal,
+}: {
+  height?: number;
+  className?: string;
+  /**
+   * Seconds before the intro plays: the symbol fades in centred, slides left
+   * to its place, and the letters fade in one by one, drifting out from
+   * behind it.
+   */
+  reveal?: number;
+}) {
+  const size = { viewBox: "0 0 1679 305", height, width: (height * 1679) / 305, fill: "currentColor", className };
+  if (reveal === undefined) {
+    return (
+      <svg {...size} role="img" aria-label="Saira Labs">
+        {[...MARK, ...WORD].map((d) => (
+          <path key={d.slice(0, 32)} d={d} />
+        ))}
+      </svg>
+    );
+  }
+
+  const slideAt = reveal + SLIDE_AT;
   return (
-    <svg
-      viewBox="0 0 1679 305"
-      height={height}
-      width={(height * 1679) / 305}
-      fill="currentColor"
-      role="img"
-      aria-label="Saira Labs"
-      className={className}
-    >
-      {[...MARK, ...WORD].map((d) => (
-        <path key={d.slice(0, 32)} d={d} />
+    <svg {...size} role="img" aria-label="Saira Labs" style={{ overflow: "visible" }}>
+      <motion.g
+        initial={{ opacity: 0, x: CENTRE_OFFSET }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{
+          opacity: { duration: 0.5, delay: reveal, ease: "easeOut" },
+          x: { duration: 1, delay: slideAt, ease: EASE },
+        }}
+      >
+        {MARK.map((d) => (
+          <path key={d.slice(0, 32)} d={d} />
+        ))}
+      </motion.g>
+      {WORD.map((d, i) => (
+        <motion.path
+          key={d.slice(0, 32)}
+          d={d}
+          initial={{ opacity: 0, x: -36 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{
+            x: { duration: LETTER_DURATION, delay: reveal + LETTERS_AT + i * LETTER_GAP, ease: EASE },
+            opacity: { duration: LETTER_DURATION * 0.8, delay: reveal + LETTERS_AT + i * LETTER_GAP, ease: "easeOut" },
+          }}
+        />
       ))}
     </svg>
   );
