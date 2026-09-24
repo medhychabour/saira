@@ -70,7 +70,7 @@ export const studio = {
   description:
     "Saira is an independent, product-driven research lab building at the intersection of AI and Web3.",
   intro: [
-    "Saira Labs is an independent, product-driven research lab building at the intersection of AI and Web3. We turn emerging technologies into ambitious products, from autonomous agents to onchain infrastructure.",
+    "Saira is an independent, product-driven research lab building at the intersection of AI and Web3. We turn emerging technologies into ambitious products, from autonomous agents to onchain infrastructure.",
     "Through Rewards, Waken, and Warns, we're exploring new frontiers, solving hard technical problems, and building the foundations for a more intelligent and programmable internet.",
   ],
   links: [
