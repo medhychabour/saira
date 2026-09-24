@@ -377,8 +377,9 @@
     clip-path: none;
   }
 
+  /* Placed by Home.tsx from the measured heights (see phoneLayout) */
   .intro {
-    top: 4.25rem;
+    top: var(--intro-top, 4.25rem);
     bottom: auto;
   }
 
@@ -415,6 +416,18 @@
 
   .pager {
     left: 50%;
+    bottom: 1rem;
+  }
+}
+
+/* Phones in landscape: the text narrows to clear the sound toggle so it can
+   start near the top, and the footer sits lower (matches SHORT in Home.tsx). */
+@media (max-width: 920px) and (max-height: 499px) {
+  .intro {
+    width: min(40rem, calc(100% - 8rem));
+  }
+
+  .footer {
     bottom: 1rem;
   }
 }

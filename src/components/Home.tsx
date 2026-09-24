@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { products, studio, type Product, type Surface } from "@/content/products";
 import { play, setMuted, useMuted } from "@/lib/sfx";
 import { Badge, TONES } from "./Badge";
@@ -36,8 +36,26 @@ const REST_SCALE = { desktop: 0.6, mobile: 0.5 };
 // A product without a mark yet gets a plain disc.
 const FALLBACK: MarkShape = { viewBox: "0 0 100 100", paths: ["M50 2a48 48 0 1 0 0.01 0Z"] };
 
-// The logos sit a little below the middle to leave room for the intro above.
-const logoOffset = (h: number, mobile: boolean) => (mobile ? h * 0.22 : Math.min(150, h * 0.16));
+// On desktop the logos sit a little below the middle and the intro hangs above them.
+const logoOffset = (h: number) => Math.min(150, h * 0.16);
+// Phones in landscape: little height, so everything tightens up.
+const SHORT = 500;
+// Below this height the logotype makes way for the text and logos.
+const LOGOTYPE_MIN_H = { desktop: 680, mobile: 620 };
+
+// On phones the intro and the logos below it are centred as one group in the
+// room between the sound toggle and the footer. Returns where the intro starts
+// and how far below the middle the logos sit.
+function phoneLayout(h: number, introH: number, footerH: number) {
+  const short = h < SHORT;
+  const top = short ? 16 : 60;
+  const footerTop = h - (short ? 16 : 32) - footerH;
+  const logo = SIZE.mobile * REST_SCALE.mobile;
+  const room = footerTop - 16 - top;
+  const gap = room - introH - logo > 120 ? 48 : 24;
+  const start = top + Math.max(0, (room - introH - gap - logo) / 2);
+  return { introTop: start, logoY: start + introH + gap + logo / 2 - h / 2 };
+}
 
 function subscribeResize(cb: () => void) {
   window.addEventListener("resize", cb);
@@ -54,6 +72,25 @@ export function Home() {
   const [active, setActive] = useState<number | null>(null);
   const { h, mobile } = useViewport();
   const open = active !== null;
+
+  // Phones place the group from the real heights of the intro and the footer.
+  const mainRef = useRef<HTMLElement>(null);
+  const introRef = useRef<HTMLElement>(null);
+  const [heights, setHeights] = useState({ intro: 0, footer: 0 });
+  useLayoutEffect(() => {
+    const intro = introRef.current;
+    const footer = mainRef.current?.querySelector("footer");
+    if (!intro || !footer) return;
+    const measure = () => setHeights({ intro: intro.offsetHeight, footer: footer.offsetHeight });
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(intro);
+    observer.observe(footer);
+    return () => observer.disconnect();
+  }, []);
+  const phone = mobile && heights.intro ? phoneLayout(h, heights.intro, heights.footer) : null;
+  const logoY = mobile ? (phone?.logoY ?? h * 0.22) : logoOffset(h);
+  const showLogotype = h >= (mobile ? LOGOTYPE_MIN_H.mobile : LOGOTYPE_MIN_H.desktop);
   // True while the logos travel back after closing, so the text only comes
   // back once they are nearly home and nothing overlaps.
   const [closing, setClosing] = useState(false);
@@ -110,27 +147,35 @@ export function Home() {
   }, [open, close, next, prev]);
 
   return (
-    <main className={styles.main} data-open={open} data-closing={closing} style={{ "--logo-y": `${logoOffset(h, mobile)}px` } as React.CSSProperties}>
+    <main
+      ref={mainRef}
+      className={styles.main}
+      data-open={open}
+      data-closing={closing}
+      style={{ "--logo-y": `${logoY}px`, "--intro-top": phone ? `${phone.introTop}px` : undefined } as React.CSSProperties}
+    >
       <MuteButton />
 
-      <section className={styles.intro}>
+      <section ref={introRef} className={styles.intro}>
         {/* The page title, for search engines and screen readers; the logos say it visually. */}
         <h1 className="sr-only">{studio.name}</h1>
         <div>
           {/* The Saira symbol, centred, in the same code style as the product logos. */}
-          <motion.div
-            className={styles.logotype}
-            initial={INTRO_HIDDEN}
-            animate={introShown ? INTRO_SHOWN : INTRO_HIDDEN}
-            transition={introShown ? { duration: loaded.current ? 0.8 : 1.1, ease: EASE, delay: loaded.current ? 0 : 0.1 } : { duration: 0.25, ease: EASE }}
-          >
-            {/* Smaller on phones and short screens, so the text never runs off the top. */}
-            {mobile || h < 800 ? (
-              <MatrixLogo key="small" mark={SAIRA_MARK} size={72} tone={LOGO_TONE} grid={{ rows: 16, cols: 26 }} index={products.length} />
-            ) : (
-              <MatrixLogo key="large" mark={SAIRA_MARK} size={120} tone={LOGO_TONE} grid={{ rows: 22, cols: 36 }} index={products.length} />
-            )}
-          </motion.div>
+          {showLogotype && (
+            <motion.div
+              className={styles.logotype}
+              initial={INTRO_HIDDEN}
+              animate={introShown ? INTRO_SHOWN : INTRO_HIDDEN}
+              transition={introShown ? { duration: loaded.current ? 0.8 : 1.1, ease: EASE, delay: loaded.current ? 0 : 0.1 } : { duration: 0.25, ease: EASE }}
+            >
+              {/* Smaller on phones and short screens, so the text never runs off the top. */}
+              {mobile || h < 800 ? (
+                <MatrixLogo key="small" mark={SAIRA_MARK} size={72} tone={LOGO_TONE} grid={{ rows: 16, cols: 26 }} index={products.length} />
+              ) : (
+                <MatrixLogo key="large" mark={SAIRA_MARK} size={120} tone={LOGO_TONE} grid={{ rows: 22, cols: 36 }} index={products.length} />
+              )}
+            </motion.div>
+          )}
           {studio.intro.map((p, i) => (
             <motion.p
               key={p.slice(0, 24)}
@@ -151,7 +196,7 @@ export function Home() {
       <div className={styles.stage}>
         <ul>
           {products.map((p, i) => (
-            <LogoItem key={p.slug} product={p} index={i} active={active} onSelect={() => select(i)} />
+            <LogoItem key={p.slug} product={p} index={i} active={active} restY={logoY} onSelect={() => select(i)} />
           ))}
         </ul>
       </div>
@@ -203,11 +248,13 @@ function LogoItem({
   product,
   index,
   active,
+  restY,
   onSelect,
 }: {
   product: Product;
   index: number;
   active: number | null;
+  restY: number;
   onSelect: () => void;
 }) {
   const { w, h, mobile } = useViewport();
@@ -226,7 +273,11 @@ function LogoItem({
   const spacing = mobile
     ? Math.min(112, (w - 100) / Math.max(total - 1, 1))
     : Math.min(200, (w - 360) / Math.max(total - 1, 1));
-  const home = { x: (index - (total - 1) / 2) * spacing, y: logoOffset(h, mobile) };
+  const home = { x: (index - (total - 1) / 2) * spacing, y: restY };
+  // On phones the open mark is centred in the room above the sheet (60% of the
+  // height) and shrinks when that room is short, as in landscape.
+  const above = h * 0.4 - 4;
+  const openScale = mobile ? Math.min(1, (above - 32) / size) : 1;
 
   // Open: the chosen mark moves to the middle of the free space left of the
   // panel and grows; the others slide along the same line and fade.
@@ -237,7 +288,7 @@ function LogoItem({
   const move = mobile ? MOVE.mobile : MOVE.desktop;
   let position: { x: number; y: number; opacity: number };
   if (!open) position = { ...home, opacity: 1 };
-  else if (mobile) position = selected ? { x: 0, y: -h * 0.27, opacity: 1 } : { ...home, opacity: 0 };
+  else if (mobile) position = selected ? { x: 0, y: above / 2 - h / 2, opacity: 1 } : { ...home, opacity: 0 };
   else position = { x: center + gap * (index - active), y: 0, opacity: selected ? 1 : 0.35 };
 
   return (
@@ -266,7 +317,7 @@ function LogoItem({
             <motion.span
               className={styles.mark}
               initial={false}
-              animate={{ scale: selected ? 1 : rest }}
+              animate={{ scale: selected ? openScale : rest }}
               transition={{ duration: swapping ? move * 0.85 : move, ease: EASE }}
             >
               <MatrixLogo mark={MARKS[product.slug] ?? FALLBACK} size={size} index={index} tone={LOGO_TONE} />
