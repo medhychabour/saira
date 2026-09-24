@@ -32,7 +32,7 @@ const SURFACE_TONE: Record<Surface, string> = {
 };
 // Logos are drawn at their open size and scaled down at rest, so they stay sharp.
 const SIZE = { desktop: 260, mobile: 190 };
-const REST_SCALE = { desktop: 0.6, mobile: 0.5 };
+const REST_SCALE = 0.6;
 // A product without a mark yet gets a plain disc.
 const FALLBACK: MarkShape = { viewBox: "0 0 100 100", paths: ["M50 2a48 48 0 1 0 0.01 0Z"] };
 
@@ -40,17 +40,25 @@ const FALLBACK: MarkShape = { viewBox: "0 0 100 100", paths: ["M50 2a48 48 0 1 0
 const logoOffset = (h: number) => Math.min(150, h * 0.16);
 // Phones in landscape: little height, so everything tightens up.
 const SHORT = 500;
+
+// On phones the row of logos fills the width, up to a cap, and stays smaller
+// in landscape where height is scarce. Returns the gap between centres and
+// the size of each logo at rest, in pixels.
+function phoneRow(w: number, h: number) {
+  const spacing = Math.min(150, (w - 32) / products.length);
+  return { spacing, logo: Math.min(h < SHORT ? 100 : 135, spacing * 0.95) };
+}
 // Below this height the logotype makes way for the text and logos.
 const LOGOTYPE_MIN_H = { desktop: 680, mobile: 620 };
 
 // On phones the intro and the logos below it are centred as one group in the
 // room between the sound toggle and the footer. Returns where the intro starts
 // and how far below the middle the logos sit.
-function phoneLayout(h: number, introH: number, footerH: number) {
+function phoneLayout(w: number, h: number, introH: number, footerH: number) {
   const short = h < SHORT;
   const top = short ? 16 : 60;
   const footerTop = h - (short ? 16 : 32) - footerH;
-  const logo = SIZE.mobile * REST_SCALE.mobile;
+  const { logo } = phoneRow(w, h);
   const room = footerTop - 16 - top;
   const gap = room - introH - logo > 120 ? 48 : 24;
   const start = top + Math.max(0, (room - introH - gap - logo) / 2);
@@ -70,7 +78,7 @@ function useViewport() {
 
 export function Home() {
   const [active, setActive] = useState<number | null>(null);
-  const { h, mobile } = useViewport();
+  const { w, h, mobile } = useViewport();
   const open = active !== null;
 
   // Phones place the group from the real heights of the intro and the footer.
@@ -88,7 +96,7 @@ export function Home() {
     observer.observe(footer);
     return () => observer.disconnect();
   }, []);
-  const phone = mobile && heights.intro ? phoneLayout(h, heights.intro, heights.footer) : null;
+  const phone = mobile && heights.intro ? phoneLayout(w, h, heights.intro, heights.footer) : null;
   const logoY = mobile ? (phone?.logoY ?? h * 0.22) : logoOffset(h);
   const showLogotype = h >= (mobile ? LOGOTYPE_MIN_H.mobile : LOGOTYPE_MIN_H.desktop);
   // True while the logos travel back after closing, so the text only comes
@@ -168,8 +176,10 @@ export function Home() {
               animate={introShown ? INTRO_SHOWN : INTRO_HIDDEN}
               transition={introShown ? { duration: loaded.current ? 0.8 : 1.1, ease: EASE, delay: loaded.current ? 0 : 0.1 } : { duration: 0.25, ease: EASE }}
             >
-              {/* Smaller on phones and short screens, so the text never runs off the top. */}
-              {mobile || h < 800 ? (
+              {/* Smaller on short screens, so the text never runs off the top. */}
+              {mobile ? (
+                <MatrixLogo key="phone" mark={SAIRA_MARK} size={120} tone={LOGO_TONE} grid={{ rows: 22, cols: 36 }} index={products.length} />
+              ) : h < 800 ? (
                 <MatrixLogo key="small" mark={SAIRA_MARK} size={72} tone={LOGO_TONE} grid={{ rows: 16, cols: 26 }} index={products.length} />
               ) : (
                 <MatrixLogo key="large" mark={SAIRA_MARK} size={120} tone={LOGO_TONE} grid={{ rows: 22, cols: 36 }} index={products.length} />
@@ -267,12 +277,11 @@ function LogoItem({
   if (history.current.cur !== active) history.current = { prev: history.current.cur, cur: active };
   const swapping = history.current.prev !== null && active !== null;
   const size = mobile ? SIZE.mobile : SIZE.desktop;
-  const rest = mobile ? REST_SCALE.mobile : REST_SCALE.desktop;
+  const row = phoneRow(w, h);
+  const rest = mobile ? row.logo / SIZE.mobile : REST_SCALE;
 
   // At rest: one centered row.
-  const spacing = mobile
-    ? Math.min(112, (w - 100) / Math.max(total - 1, 1))
-    : Math.min(200, (w - 360) / Math.max(total - 1, 1));
+  const spacing = mobile ? row.spacing : Math.min(200, (w - 360) / Math.max(total - 1, 1));
   const home = { x: (index - (total - 1) / 2) * spacing, y: restY };
   // On phones the open mark is centred in the room above the sheet (60% of the
   // height) and shrinks when that room is short, as in landscape.

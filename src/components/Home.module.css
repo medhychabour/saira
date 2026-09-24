@@ -373,7 +373,10 @@
 /* Small screens: the panel slides up as a sheet */
 
 @media (max-width: 920px) {
+  /* The sheet covers the lower part: the logos stay under it, so none shows
+     over the sheet while they travel. */
   .main[data-open="true"] .stage {
+    z-index: auto;
     clip-path: none;
   }
 
