@@ -54,6 +54,8 @@ export function Home() {
 
   const close = useCallback(() => {
     play("close");
+    // Drop focus from the logo that opened, or its hover state would linger.
+    (document.activeElement as HTMLElement | null)?.blur();
     setActive(null);
     setClosing(true);
     clearTimeout(closingTimer.current);
@@ -206,6 +208,11 @@ function LogoItem({
   const total = products.length;
   const open = active !== null;
   const selected = active === index;
+  // Moving from one open product to another is a little quicker than opening
+  // or closing. All logos glide together and keep their order, so none cross.
+  const history = useRef({ prev: null as number | null, cur: active });
+  if (history.current.cur !== active) history.current = { prev: history.current.cur, cur: active };
+  const swapping = history.current.prev !== null && active !== null;
   const size = mobile ? SIZE.mobile : SIZE.desktop;
   const rest = mobile ? REST_SCALE.mobile : REST_SCALE.desktop;
 
@@ -219,11 +226,13 @@ function LogoItem({
   // panel and grows; the others slide along the same line and fade.
   const panel = Math.max(416, Math.min(480, w * 0.34));
   const center = -(panel + 8) / 2;
-  const gap = 320;
+  // Room between logos in the carousel, kept inside the free space left of the panel.
+  const gap = Math.min(420, (w - panel) * 0.42);
+  const move = mobile ? MOVE.mobile : MOVE.desktop;
   let position: { x: number; y: number; opacity: number };
   if (!open) position = { ...home, opacity: 1 };
   else if (mobile) position = selected ? { x: 0, y: -h * 0.27, opacity: 1 } : { ...home, opacity: 0 };
-  else position = { x: center + gap * (index - active), y: 0, opacity: selected ? 1 : 0.14 };
+  else position = { x: center + gap * (index - active), y: 0, opacity: selected ? 1 : 0.35 };
 
   return (
     <li style={{ zIndex: selected ? 2 : 1 }}>
@@ -231,7 +240,7 @@ function LogoItem({
         className={styles.anchor}
         initial={false}
         animate={position}
-        transition={{ duration: mobile ? MOVE.mobile : MOVE.desktop, ease: EASE, opacity: { duration: 0.4 } }}
+        transition={{ duration: swapping ? move * 0.85 : move, ease: EASE, opacity: { duration: 0.5, ease: EASE } }}
       >
         <button
           className={styles.logo}
@@ -252,7 +261,7 @@ function LogoItem({
               className={styles.mark}
               initial={false}
               animate={{ scale: selected ? 1 : rest }}
-              transition={{ duration: mobile ? MOVE.mobile : MOVE.desktop, ease: EASE }}
+              transition={{ duration: swapping ? move * 0.85 : move, ease: EASE }}
             >
               <MatrixLogo mark={MARKS[product.slug] ?? FALLBACK} size={size} index={index} />
             </motion.span>
@@ -266,6 +275,11 @@ function LogoItem({
 
 function Panel({ product, onClose }: { product: Product | null; onClose: () => void }) {
   const { mobile } = useViewport();
+  // A fresh key on every change. Keyed by slug alone, going back to a product
+  // whose content was still fading out revived that exiting copy, which then
+  // stayed stuck at opacity 0 and left the panel blank.
+  const version = useRef({ slug: product?.slug, n: 0 });
+  if (version.current.slug !== product?.slug) version.current = { slug: product?.slug, n: version.current.n + 1 };
 
   return (
     <AnimatePresence>
@@ -299,7 +313,7 @@ function Panel({ product, onClose }: { product: Product | null; onClose: () => v
 
             <AnimatePresence mode="popLayout">
               <motion.div
-                key={product.slug}
+                key={`${product.slug}-${version.current.n}`}
                 className={styles.panelInner}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}

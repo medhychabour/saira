@@ -92,6 +92,14 @@
   pointer-events: none;
 }
 
+/* While open, the logos sit above the click-to-close layer so the big one
+   still reacts to the pointer; they are cut at the panel edge so none shows
+   over it. Clicks on empty space still fall through and close. */
+.main[data-open="true"] .stage {
+  z-index: 25;
+  clip-path: inset(0 calc(var(--panel) + 0.5rem) 0 0);
+}
+
 .stage ul {
   position: relative;
   list-style: none;
@@ -119,6 +127,14 @@
   transition: opacity 400ms var(--ease-swift);
 }
 
+/* Hovering a mark lifts it slightly */
+.logo {
+  transition: opacity 400ms var(--ease-swift), transform 500ms var(--ease-swift);
+}
+
+.main:not([data-open="true"], [data-closing="true"]) .logo:is(:hover, :focus-visible) {
+  transform: scale(1.08);
+}
 .logo:disabled {
   cursor: default;
   pointer-events: none;
@@ -137,25 +153,12 @@
   display: block;
 }
 
-/* Hovering one mark blurs and quiets everything else on the page */
-.intro,
-.footer,
-.logo {
-  transition: opacity 400ms var(--ease-swift), filter 400ms var(--ease-swift);
-}
-
-.main:not([data-open="true"], [data-closing="true"]):has(.logo:hover, .logo:focus-visible) :is(.intro, .footer),
-.main:not([data-open="true"], [data-closing="true"]) .stage ul:has(.logo:hover, .logo:focus-visible) .logo:not(:hover, :focus-visible) {
-  opacity: 0.45;
-  filter: blur(4.5px);
-}
-
 .name {
   position: absolute;
   top: calc(80% + 0.25rem);
   left: 50%;
   font-size: 0.875rem;
-  color: var(--color-light);
+  color: var(--color);
   white-space: nowrap;
   opacity: 0;
   transform: translate(-50%, -0.25rem);
@@ -409,6 +412,10 @@
 /* Small screens: the panel slides up as a sheet */
 
 @media (max-width: 920px) {
+  .main[data-open="true"] .stage {
+    clip-path: none;
+  }
+
   .intro {
     top: 4.25rem;
     bottom: auto;
