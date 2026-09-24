@@ -228,6 +228,17 @@
   color: var(--color);
 }
 
+.prose h3 {
+  margin-top: 2.25rem;
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--color);
+}
+
+.prose h3 + p {
+  margin-top: 0.5rem;
+}
+
 .prose strong {
   font-weight: 500;
   color: var(--color);
@@ -238,6 +249,11 @@
   text-decoration: underline;
   text-decoration-color: rgba(255, 255, 255, 0.3);
   text-underline-offset: 3px;
+  transition: text-decoration-color 200ms;
+}
+
+.prose a:hover {
+  text-decoration-color: rgba(255, 255, 255, 0.9);
 }
 
 .prose ul,
