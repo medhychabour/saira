@@ -3,12 +3,14 @@
 import { useEffect, useRef } from "react";
 import type { MarkShape } from "./Mark";
 
-// The mark decoded from falling green code on an early-2000s CRT.
+// The mark decoded from falling blue code on an early-2000s CRT.
 //
 // - On arrival the mark is empty. One wave of code falls down every column
 //   and each cell of the mark locks into place as the wave passes through it.
-// - Once decoded, the glyphs keep flickering, a soft band scans down, and
-//   each frame leaves a short phosphor trail.
+// - Once decoded, the glyphs keep flickering and each frame leaves a short
+//   phosphor trail; an additive bloom keeps the mark lit.
+// - A single soft sheen travels across the logos one after the other, left to
+//   right, then rests before the next pass.
 // - Under the pointer, glyphs scramble, brighten and part.
 
 const GLYPHS = "0123456789$#JS75^:=+*<>ｱｲｳｴｵｶｷｸ";
@@ -20,7 +22,44 @@ type Drop = { y: number; speed: number; len: number };
 
 const pick = () => GLYPHS[(Math.random() * GLYPHS.length) | 0];
 
-export function MatrixLogo({ mark, size }: { mark: MarkShape; size: number }) {
+// Two close blues alternating in soft diagonal bands.
+type RGB = [number, number, number];
+const STOPS: [number, RGB][] = [
+  [0, [0x5a, 0xa8, 0xff]],
+  [0.26, [0x7c, 0xc4, 0xff]],
+  [0.51, [0x5a, 0xa8, 0xff]],
+  [0.75, [0x7c, 0xc4, 0xff]],
+  [1, [0x5a, 0xa8, 0xff]],
+];
+const BRIGHT: RGB = [190, 225, 255]; // under the pointer
+const HIGHLIGHT: RGB = [235, 245, 255]; // wave heads, flashes, the sheen
+
+function gradientAt(t: number): RGB {
+  for (let i = 1; i < STOPS.length; i++) {
+    const [t1, c1] = STOPS[i];
+    const [t0, c0] = STOPS[i - 1];
+    if (t <= t1) {
+      const k = (t - t0) / (t1 - t0);
+      return c0.map((v, j) => v + (c1[j] - v) * k) as RGB;
+    }
+  }
+  return STOPS[STOPS.length - 1][1];
+}
+
+const mix = (a: RGB, b: RGB, k: number) => a.map((v, j) => Math.round(v + (b[j] - v) * k)).join(",");
+
+// Each cell takes its colour from a diagonal pass through the gradient.
+const TINT = Array.from({ length: ROWS * COLS }, (_, i) =>
+  gradientAt(Math.min(1, ((i % COLS) / COLS) * 0.75 + (Math.floor(i / COLS) / ROWS) * 0.25)),
+);
+
+// The sheen crosses one logo in SWEEP seconds, logos in turn, then rests so
+// a full cycle lasts PERIOD seconds.
+const SWEEP = 1.8;
+const PERIOD = 8;
+const WIDTH = 0.3; // half-width of the sheen along the diagonal
+
+export function MatrixLogo({ mark, size, index = 0 }: { mark: MarkShape; size: number; index?: number }) {
   const canvas = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -99,13 +138,14 @@ export function MatrixLogo({ mark, size }: { mark: MarkShape; size: number }) {
 
     let raf = 0;
     let last = 0;
-    let scan = -8;
 
     const tick = (now: number) => {
       raf = requestAnimationFrame(tick);
       if (now - last < 1000 / FPS) return;
       last = now;
-      scan = scan > ROWS + 8 ? -8 : scan + 0.35;
+      // Where the sheen is on this logo: from before its left edge to past its right.
+      const tt = ((now / 1000) % PERIOD) - index * SWEEP;
+      const shine = tt >= 0 && tt < SWEEP ? -WIDTH + (tt / SWEEP) * (1.25 + 2 * WIDTH) : -10;
 
       // Fade the previous frame instead of clearing it: phosphor persistence.
       lc.globalCompositeOperation = "destination-out";
@@ -116,7 +156,6 @@ export function MatrixLogo({ mark, size }: { mark: MarkShape; size: number }) {
       for (const d of drops) if (d.y - d.len <= ROWS) d.y += d.speed;
 
       for (let r = 0; r < ROWS; r++) {
-        const band = Math.max(0, 1 - Math.abs(r - scan) / 3);
         const y = (r + 0.5) * ch;
 
         for (let c = 0; c < COLS; c++) {
@@ -152,14 +191,18 @@ export function MatrixLogo({ mark, size }: { mark: MarkShape; size: number }) {
             }
           }
 
+          // The sheen: a wide, soft cosine falloff around its line.
+          const d = Math.abs((c / COLS) * 0.8 + (r / ROWS) * 0.45 - shine);
+          const sheen = d < WIDTH ? 0.5 + 0.5 * Math.cos((Math.PI * d) / WIDTH) : 0;
+
           let a: number;
           let color: string;
           if (inside && locked[i]) {
             if (Math.random() < 0.05) glyph[i] = pick();
-            a = (0.55 + v * 0.45) * (0.85 + Math.random() * 0.15) + band * 0.3 + rain * 0.25 + lift * 0.4;
+            a = (0.72 + v * 0.28) * (0.88 + Math.random() * 0.12) + rain * 0.25 + lift * 0.4 + sheen * 0.35;
             const f = flash[i];
             flash[i] *= 0.82;
-            color = f > 0.35 || head ? "225,255,225" : band > 0.4 || lift > 0.5 ? "170,255,170" : "64,255,96";
+            color = f > 0.35 || head ? HIGHLIGHT.join(",") : lift > 0.5 ? BRIGHT.join(",") : mix(TINT[i], HIGHLIGHT, sheen * 0.7);
             a = Math.min(1, a + f * 0.4);
           } else {
             // The wave: full inside the mark, faint around it.
@@ -167,7 +210,7 @@ export function MatrixLogo({ mark, size }: { mark: MarkShape; size: number }) {
             a = rain * strength;
             if (a < 0.03) continue;
             if (head || Math.random() < 0.15) glyph[i] = pick();
-            color = head ? "225,255,225" : "40,210,80";
+            color = head ? HIGHLIGHT.join(",") : TINT[i].join(",");
           }
 
           lc.fillStyle = `rgba(${color},${a})`;
@@ -177,24 +220,31 @@ export function MatrixLogo({ mark, size }: { mark: MarkShape; size: number }) {
 
       ctx.clearRect(0, 0, el.width, el.height);
       ctx.globalAlpha = 0.93 + Math.random() * 0.07; // faint CRT flicker
-      // Wide soft bloom, a smear to the right, then the crisp glyphs.
-      ctx.filter = `blur(${ch * 0.9}px)`;
+      // Everything adds up as light: a wide bloom, a tighter glow, a smear to
+      // the right, then the crisp glyphs.
+      const flicker = ctx.globalAlpha;
+      ctx.globalCompositeOperation = "lighter";
+      ctx.filter = `blur(${ch * 1.3}px)`;
+      ctx.globalAlpha = 0.75 * flicker;
+      ctx.drawImage(layer, 0, 0);
+      ctx.filter = `blur(${ch * 0.35}px)`;
+      ctx.globalAlpha = 0.55 * flicker;
       ctx.drawImage(layer, 0, 0);
       ctx.filter = `blur(${ch * 0.15}px)`;
-      const flicker = ctx.globalAlpha;
       for (let t = 1; t <= 3; t++) {
-        ctx.globalAlpha = (0.16 / t) * flicker;
+        ctx.globalAlpha = (0.14 / t) * flicker;
         ctx.drawImage(layer, t * cw * 0.9, 0);
       }
       ctx.filter = "none";
       ctx.globalAlpha = flicker;
       ctx.drawImage(layer, 0, 0);
+      ctx.globalCompositeOperation = "source-over";
 
       ctx.globalAlpha = 1;
 
       // Scanlines.
       ctx.globalCompositeOperation = "destination-out";
-      ctx.fillStyle = "rgba(0,0,0,0.3)";
+      ctx.fillStyle = "rgba(0,0,0,0.18)";
       for (let y = 0; y < el.height; y += 3 * dpr) ctx.fillRect(0, y, el.width, dpr);
       ctx.globalCompositeOperation = "source-over";
     };

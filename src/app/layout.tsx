@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { DevFeedback } from "@/components/DevFeedback";
 import { studio } from "@/content/products";
 import "./globals.css";
 
@@ -18,7 +19,10 @@ export const viewport: Viewport = { themeColor: "#000000" };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={inter.variable}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <DevFeedback />
+      </body>
     </html>
   );
 }

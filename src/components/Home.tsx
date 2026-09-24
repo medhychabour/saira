@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { products, studio, type Product } from "@/content/products";
 import { play, setMuted, useMuted } from "@/lib/sfx";
 import { MARKS, type MarkShape } from "./Mark";
@@ -11,6 +11,10 @@ import { SairaLogo } from "./SairaLogo";
 import styles from "./Home.module.css";
 
 const EASE = [0.19, 1, 0.22, 1] as const;
+// How long the logos take to move and grow or shrink; the text stays hidden meanwhile.
+const MOVE = { desktop: 0.9, mobile: 0.5 };
+const INTRO_HIDDEN = { opacity: 0, filter: "blur(10px)", y: 6 };
+const INTRO_SHOWN = { opacity: 1, filter: "blur(0px)", y: 0 };
 const MOBILE = 920;
 // Logos are drawn at their open size and scaled down at rest, so they stay sharp.
 const SIZE = { desktop: 260, mobile: 190 };
@@ -36,15 +40,35 @@ export function Home() {
   const [active, setActive] = useState<number | null>(null);
   const { h, mobile } = useViewport();
   const open = active !== null;
+  // True while the logos travel back after closing, so the text only comes
+  // back once they are nearly home and nothing overlaps.
+  const [closing, setClosing] = useState(false);
+  const closingTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const select = useCallback((i: number) => {
     play("open");
+    clearTimeout(closingTimer.current);
+    setClosing(false);
     setActive(i);
   }, []);
 
   const close = useCallback(() => {
     play("close");
     setActive(null);
+    setClosing(true);
+    clearTimeout(closingTimer.current);
+    // The ease-out puts the logos ~75% home by 20% of the move: bring the text back then.
+    closingTimer.current = setTimeout(() => setClosing(false), (mobile ? MOVE.mobile : MOVE.desktop) * 200);
+  }, [mobile]);
+
+  useEffect(() => () => clearTimeout(closingTimer.current), []);
+
+  // The intro paragraphs come in from a soft blur, one after the other: on
+  // load, and again each time a product closes. They leave all at once.
+  const introShown = !open && !closing;
+  const loaded = useRef(false);
+  useEffect(() => {
+    loaded.current = true;
   }, []);
 
   const next = useCallback(() => {
@@ -70,18 +94,21 @@ export function Home() {
   }, [open, close, next, prev]);
 
   return (
-    <main className={styles.main} data-open={open} style={{ "--logo-y": `${logoOffset(h, mobile)}px` } as React.CSSProperties}>
+    <main className={styles.main} data-open={open} data-closing={closing} style={{ "--logo-y": `${logoOffset(h, mobile)}px` } as React.CSSProperties}>
       <MuteButton />
 
       <section className={styles.intro}>
         <div>
-          {/* Each paragraph comes in from a soft blur, one after the other. */}
           {studio.intro.map((p, i) => (
             <motion.p
               key={p.slice(0, 24)}
-              initial={{ opacity: 0, filter: "blur(10px)", y: 6 }}
-              animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
-              transition={{ duration: 1.1, ease: EASE, delay: 0.15 + i * 0.18 }}
+              initial={INTRO_HIDDEN}
+              animate={introShown ? INTRO_SHOWN : INTRO_HIDDEN}
+              transition={
+                introShown
+                  ? { duration: loaded.current ? 0.8 : 1.1, ease: EASE, delay: (loaded.current ? 0 : 0.15) + i * (loaded.current ? 0.1 : 0.18) }
+                  : { duration: 0.25, ease: EASE }
+              }
             >
               {highlight(p)}
             </motion.p>
@@ -148,12 +175,20 @@ export function Home() {
   );
 }
 
-// Product names in the intro stand out in white.
+// Product names in the intro stand out in white and link to their site.
 function highlight(text: string) {
   const names = products.map((p) => p.name).join("|");
-  return text.split(new RegExp(`(${names})`)).map((part, i) =>
-    products.some((p) => p.name === part) ? <strong key={i}>{part}</strong> : part,
-  );
+  return text.split(new RegExp(`(${names})`)).map((part, i) => {
+    const product = products.find((p) => p.name === part);
+    if (!product) return part;
+    return product.links.site ? (
+      <a key={i} href={product.links.site} target="_blank" rel="noopener noreferrer" onClick={() => play("click")}>
+        {part}
+      </a>
+    ) : (
+      <strong key={i}>{part}</strong>
+    );
+  });
 }
 
 function LogoItem({
@@ -196,7 +231,7 @@ function LogoItem({
         className={styles.anchor}
         initial={false}
         animate={position}
-        transition={{ duration: mobile ? 0.5 : 0.9, ease: EASE, opacity: { duration: 0.4 } }}
+        transition={{ duration: mobile ? MOVE.mobile : MOVE.desktop, ease: EASE, opacity: { duration: 0.4 } }}
       >
         <button
           className={styles.logo}
@@ -217,9 +252,9 @@ function LogoItem({
               className={styles.mark}
               initial={false}
               animate={{ scale: selected ? 1 : rest }}
-              transition={{ duration: mobile ? 0.5 : 0.9, ease: EASE }}
+              transition={{ duration: mobile ? MOVE.mobile : MOVE.desktop, ease: EASE }}
             >
-              <MatrixLogo mark={MARKS[product.slug] ?? FALLBACK} size={size} />
+              <MatrixLogo mark={MARKS[product.slug] ?? FALLBACK} size={size} index={index} />
             </motion.span>
           </motion.span>
           <span className={styles.name}>{product.name}</span>

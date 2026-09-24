@@ -51,14 +51,34 @@
   text-wrap: pretty;
 }
 
-.intro strong {
+.intro strong,
+.intro a {
   font-weight: 400;
   color: var(--color);
 }
 
-.main[data-open="true"] .intro {
-  opacity: 0;
+.intro a {
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.25);
+  text-underline-offset: 0.2em;
+  transition: text-decoration-color 200ms;
+}
+
+.intro a:hover {
+  text-decoration-color: rgba(255, 255, 255, 0.9);
+}
+
+/* While a product is open, and while the logos travel back after closing,
+   the footer stays blurred out; it leaves fast and returns softly. The intro
+   paragraphs animate themselves (see Home.tsx). */
+.main:is([data-open="true"], [data-closing="true"]) .intro {
   pointer-events: none;
+}
+
+.main:is([data-open="true"], [data-closing="true"]) .footer {
+  opacity: 0;
+  filter: blur(10px);
+  transition-duration: 250ms;
 }
 
 /* Logos */
@@ -117,9 +137,17 @@
   display: block;
 }
 
-/* Hovering one mark quiets the others */
-.main:not([data-open="true"]) .stage ul:has(.logo:hover, .logo:focus-visible) .logo:not(:hover, :focus-visible) {
-  opacity: 0.3;
+/* Hovering one mark blurs and quiets everything else on the page */
+.intro,
+.footer,
+.logo {
+  transition: opacity 400ms var(--ease-swift), filter 400ms var(--ease-swift);
+}
+
+.main:not([data-open="true"], [data-closing="true"]):has(.logo:hover, .logo:focus-visible) :is(.intro, .footer),
+.main:not([data-open="true"], [data-closing="true"]) .stage ul:has(.logo:hover, .logo:focus-visible) .logo:not(:hover, :focus-visible) {
+  opacity: 0.45;
+  filter: blur(4.5px);
 }
 
 .name {
@@ -135,8 +163,8 @@
   pointer-events: none;
 }
 
-.main:not([data-open="true"]) .logo:hover .name,
-.main:not([data-open="true"]) .logo:focus-visible .name {
+.main:not([data-open="true"], [data-closing="true"]) .logo:hover .name,
+.main:not([data-open="true"], [data-closing="true"]) .logo:focus-visible .name {
   opacity: 1;
   transform: translate(-50%, 0);
 }
@@ -153,12 +181,9 @@
   align-items: center;
   gap: 0.5rem;
   pointer-events: none;
-  transition: opacity 400ms;
+  transition: opacity 400ms var(--ease-swift), filter 400ms var(--ease-swift);
 }
 
-.main[data-open="true"] .footer {
-  opacity: 0;
-}
 
 .wordmark {
   display: block;
@@ -433,3 +458,4 @@
     bottom: 1rem;
   }
 }
+
