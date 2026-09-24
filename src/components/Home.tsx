@@ -283,8 +283,8 @@ function LogoItem({
   // At rest: one centered row.
   const spacing = mobile ? row.spacing : Math.min(200, (w - 360) / Math.max(total - 1, 1));
   const home = { x: (index - (total - 1) / 2) * spacing, y: restY };
-  // On phones the open mark is centred in the room above the sheet (60% of the
-  // height) and shrinks when that room is short, as in landscape.
+  // On phones the open row is centred in the room above the sheet (60% of the
+  // height) and the chosen mark shrinks when that room is short, as in landscape.
   const above = h * 0.4 - 4;
   const openScale = mobile ? Math.min(1, (above - 32) / size) : 1;
 
@@ -292,13 +292,17 @@ function LogoItem({
   // panel and grows; the others slide along the same line and fade.
   const panel = Math.max(416, Math.min(480, w * 0.34));
   const center = -(panel + 8) / 2;
-  // Room between logos in the carousel, kept inside the free space left of the panel.
-  const gap = Math.min(420, (w - panel) * 0.42);
+  // Room between logos in the carousel, kept inside the free space left of the
+  // panel. On phones the neighbours peek in from the edges.
+  const gap = mobile ? Math.min(w * 0.55, size * openScale + 60) : Math.min(420, (w - panel) * 0.42);
   const move = mobile ? MOVE.mobile : MOVE.desktop;
   let position: { x: number; y: number; opacity: number };
   if (!open) position = { ...home, opacity: 1 };
-  else if (mobile) position = selected ? { x: 0, y: above / 2 - h / 2, opacity: 1 } : { ...home, opacity: 0 };
-  else position = { x: center + gap * (index - active), y: 0, opacity: selected ? 1 : 0.35 };
+  else position = {
+    x: (mobile ? 0 : center) + gap * (index - active),
+    y: mobile ? above / 2 - h / 2 : 0,
+    opacity: selected ? 1 : 0.35,
+  };
 
   return (
     <li style={{ zIndex: selected ? 2 : 1 }}>
