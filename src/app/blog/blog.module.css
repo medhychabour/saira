@@ -49,7 +49,6 @@
 
 .postHeader .meta {
   --i: 2;
-  font-size: 1rem;
 }
 
 /* The article body follows its header, block by block. */
@@ -157,7 +156,7 @@
 .more {
   align-self: flex-start;
   margin-top: 1rem;
-  font-size: 0.875rem;
+  font-size: 1rem;
   color: var(--color);
   text-decoration: underline;
   text-decoration-color: rgba(255, 255, 255, 0.3);
@@ -172,7 +171,7 @@
 .meta {
   display: flex;
   gap: 0.375rem;
-  font-size: 0.875rem;
+  font-size: 1rem;
   font-weight: 300;
   color: var(--color-light);
 }
