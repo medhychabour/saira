@@ -180,11 +180,6 @@
   font-size: 1.25rem;
   font-weight: 500;
   letter-spacing: -0.01em;
-  transition: opacity 150ms;
-}
-
-.list a:hover .title {
-  opacity: 0.7;
 }
 
 .summary {
