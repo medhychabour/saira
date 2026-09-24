@@ -43,16 +43,13 @@
 }
 
 .header,
-.postHeader .meta {
-  font-size: 1rem;
-}
-
 .postHeader h1 {
   --i: 1;
 }
 
 .postHeader .meta {
   --i: 2;
+  font-size: 1rem;
 }
 
 /* The article body follows its header, block by block. */
