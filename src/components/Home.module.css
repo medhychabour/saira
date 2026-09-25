@@ -142,7 +142,20 @@
   transition: opacity 400ms var(--ease-swift), transform 500ms var(--ease-swift);
 }
 
-.main:not([data-open="true"], [data-closing="true"]) .logo:is(:hover, :focus-visible) {
+/* Hover only where there is a real pointer: on touch screens :hover sticks
+   after a tap and would leave the mark grown and named. */
+@media (hover: hover) {
+  .main:not([data-open="true"], [data-closing="true"]) .logo:hover {
+    transform: scale(1.08);
+  }
+
+  .main:not([data-open="true"], [data-closing="true"]) .logo:hover .name {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.main:not([data-open="true"], [data-closing="true"]) .logo:focus-visible {
   transform: scale(1.08);
 }
 .logo:disabled {
@@ -176,7 +189,6 @@
   pointer-events: none;
 }
 
-.main:not([data-open="true"], [data-closing="true"]) .logo:hover .name,
 .main:not([data-open="true"], [data-closing="true"]) .logo:focus-visible .name {
   opacity: 1;
   transform: translate(-50%, 0);
@@ -386,9 +398,15 @@
     line-height: 1.55;
   }
 
+  /* Taps above the sheet go through to the logos (see Home.tsx) */
   .overlay {
     padding: 0 0.25rem 0.25rem;
     align-items: flex-end;
+    pointer-events: none;
+  }
+
+  .panel {
+    pointer-events: auto;
   }
 
   .panel {
@@ -430,3 +448,22 @@
   }
 }
 
+
+/* Touch screens: no sticky hover on the buttons, a brief press state instead. */
+@media (hover: none) {
+  .mute:hover,
+  .close:hover {
+    color: var(--color-light);
+    background: none;
+  }
+
+  .pager button:hover {
+    color: var(--color-light);
+  }
+
+  .mute:active,
+  .close:active,
+  .pager button:active {
+    color: var(--color);
+  }
+}

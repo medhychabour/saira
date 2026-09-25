@@ -14,7 +14,7 @@ import styles from "./Home.module.css";
 
 const EASE = [0.19, 1, 0.22, 1] as const;
 // How long the logos take to move and grow or shrink; the text stays hidden meanwhile.
-const MOVE = { desktop: 0.9, mobile: 0.5 };
+const MOVE = { desktop: 0.9, mobile: 0.85 };
 const INTRO_HIDDEN = { opacity: 0, filter: "blur(10px)", y: 6 };
 const INTRO_SHOWN = { opacity: 1, filter: "blur(0px)", y: 0 };
 const MOBILE = 920;
@@ -143,6 +143,17 @@ export function Home() {
     setActive((i) => ((i ?? 0) - 1 + products.length) % products.length);
   }, []);
 
+  // A logo opens its product, or switches to it when another one is open.
+  const pick = useCallback(
+    (i: number) => {
+      if (active === null) return select(i);
+      if (i === active) return;
+      play(i > active ? "forward" : "back");
+      setActive(i);
+    },
+    [active, select],
+  );
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -161,6 +172,11 @@ export function Home() {
       className={styles.main}
       data-open={open}
       data-closing={closing}
+      // On phones the sheet's backdrop lets taps through (so the logos above
+      // stay tappable): a tap on empty space lands here and closes.
+      onClick={(e) => {
+        if (open && e.target === e.currentTarget) close();
+      }}
       style={{ "--logo-y": `${logoY}px`, "--intro-top": layout ? `${layout.introTop}px` : undefined } as React.CSSProperties}
     >
       <MuteButton />
@@ -207,7 +223,7 @@ export function Home() {
       <div className={styles.stage}>
         <ul>
           {products.map((p, i) => (
-            <LogoItem key={p.slug} product={p} index={i} active={active} restY={logoY} onSelect={() => select(i)} />
+            <LogoItem key={p.slug} product={p} index={i} active={active} restY={logoY} onSelect={() => pick(i)} />
           ))}
         </ul>
       </div>
@@ -313,13 +329,14 @@ function LogoItem({
         animate={position}
         transition={{ duration: swapping ? move * 0.85 : move, ease: EASE, opacity: { duration: 0.5, ease: EASE } }}
       >
+        {/* Once open, phones can also tap a neighbour peeking in to switch to it. */}
         <button
           className={styles.logo}
           aria-label={`Open ${product.name}`}
-          disabled={open && !selected}
+          disabled={open && !selected && !mobile}
           tabIndex={open ? -1 : 0}
           onClick={() => {
-            if (!open) onSelect();
+            if (!open || (mobile && !selected)) onSelect();
           }}
         >
           <motion.span
@@ -362,10 +379,10 @@ function Panel({ product, onClose }: { product: Product | null; onClose: () => v
           animate={mobile ? { y: 0 } : { opacity: 1, scale: 1 }}
           exit={
             mobile
-              ? { y: "100%", transition: { duration: 0.4, ease: "easeInOut" } }
+              ? { y: "100%", transition: { duration: 0.55, ease: [0.4, 0, 0.2, 1] } }
               : { opacity: 0, scale: 0.95, transition: { duration: 0.1 } }
           }
-          transition={mobile ? { duration: 0.6, ease: EASE } : { duration: 0.15 }}
+          transition={mobile ? { duration: 0.8, ease: EASE } : { duration: 0.15 }}
           onClick={onClose}
         >
           <div className={styles.panel} onClick={(e) => e.stopPropagation()}>
