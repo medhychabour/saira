@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { Inter } from "next/font/google";
 import { DevFeedback } from "@/components/DevFeedback";
 import { SITE_URL, studio } from "@/content/products";
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={inter.variable}>
       <body>
         {children}
+        <Analytics />
         <DevFeedback />
       </body>
     </html>
