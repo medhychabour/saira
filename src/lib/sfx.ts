@@ -63,6 +63,16 @@ try {
   if (typeof window !== "undefined") muted = localStorage.getItem(KEY) === "1";
 } catch {}
 
+// Wake the audio on the first touch anywhere, ahead of the first sound: iOS
+// only allows it during a user gesture.
+if (typeof window !== "undefined") {
+  const wake = () => {
+    if (!muted) audio();
+  };
+  window.addEventListener("pointerdown", wake, { once: true, capture: true });
+  window.addEventListener("touchend", wake, { once: true, capture: true });
+}
+
 // A small, dry room: short decaying noise.
 function impulse(ac: AudioContext) {
   const length = Math.floor(ac.sampleRate * 0.35);
@@ -78,8 +88,18 @@ function audio() {
   if (!ctx) {
     const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AC) return null;
+    // Mix with whatever the phone is playing and follow the silent switch:
+    // interface sounds never cut someone's music.
+    const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+    if (session) session.type = "ambient";
     ctx = new AC();
     phone = window.matchMedia("(pointer: coarse)").matches;
+    // iOS only unlocks audio once something has played inside a tap: a single
+    // silent sample does it, so the first real sound is not lost.
+    const unlock = ctx.createBufferSource();
+    unlock.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+    unlock.connect(ctx.destination);
+    unlock.start();
 
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -16;
